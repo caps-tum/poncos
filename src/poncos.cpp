@@ -189,9 +189,11 @@ static std::unordered_map<std::string, vm_pool_elemT> start_virt_cluster(fast::M
 		// -- uuid
 		uuid_t uuid;
 		uuid_generate(uuid);
-		std::string uuid_str((const char *)uuid);
-		std::regex uuid_regex("(<uuid>)(.+)(</uuid>)");
-		slot_xml = std::regex_replace(slot_xml, uuid_regex, "$1" + uuid_str + "$3");
+		char uuid_char_str[40];
+		uuid_unparse(uuid, uuid_char_str);
+		std::string uuid_str((const char*)uuid_char_str);
+		std::regex uuid_regex("[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12}");
+		slot_xml = std::regex_replace(slot_xml, uuid_regex, uuid_str);
 		// -- mac
 		std::regex mac_regex("([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})");
 		slot_xml = std::regex_replace(slot_xml, mac_regex, free_vm.mac_addr);
