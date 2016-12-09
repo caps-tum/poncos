@@ -15,16 +15,11 @@
 #include <condition_variable>
 #include <string>
 #include <vector>
-#include <queue>
+#include <list>
 
 struct vm_pool_elemT {
 	std::string name;
 	std::string mac_addr;
-};
-
-struct vm_poolT {
-	std::queue<vm_pool_elemT> free;
-	std::queue<vm_pool_elemT> alloc;
 };
 
 struct sched_configT {
@@ -34,7 +29,7 @@ struct sched_configT {
 
 constexpr size_t SLOTS = 2;
 extern const sched_configT co_configs[SLOTS];
-extern vm_poolT vm_pool;
+extern std::list<vm_pool_elemT> vm_pool;
 
 void read_file(std::string filename, std::vector<std::string> &command_queue);
 std::string cgroup_name_from_id(size_t id);

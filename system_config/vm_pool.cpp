@@ -1,9 +1,6 @@
 #include "poncos/poncos.hpp"
-// This defines two  list of VMs:
-// vm_pool.free: VMs available to schedule
-// vm_pool.alloc: VMs in use by the scheduler
-vm_poolT vm_pool = {
-	std::queue<vm_pool_elemT>({
+// This defines a list of free VMs:
+std::list<vm_pool_elemT> vm_pool = std::list<vm_pool_elemT>({
 		{ "parastation-1", "00:16:3e:6e:1c:c7" },
 		{ "parastation-2", "00:16:3e:0a:5b:0f" },
 		{ "parastation-3", "00:16:3e:3c:d4:1c" },
@@ -84,6 +81,4 @@ vm_poolT vm_pool = {
 		{ "parastation-78", "00:16:3e:15:6f:fa" },
 		{ "parastation-79", "00:16:3e:50:2e:90" },
 		{ "parastation-80", "00:16:3e:7b:bb:b0" }
-	}),
-	std::queue<vm_pool_elemT>()
-};
+	});
