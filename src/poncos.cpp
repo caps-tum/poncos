@@ -178,7 +178,7 @@ static std::unordered_map<std::string, vm_pool_elemT> start_virt_cluster(fast::M
 		slot_stream << slot_file.rdbuf();
 		std::string slot_xml = slot_stream.str();
 
-		// get free vm 
+		// get free vm
 		vm_pool_elemT free_vm = vm_pool.front();
 		vm_pool.pop_front();
 
@@ -215,21 +215,19 @@ static std::unordered_map<std::string, vm_pool_elemT> start_virt_cluster(fast::M
 		std::string topic = "fast/migfra/" + *mach + "/result";
 		response.from_string(comm.get_message(topic));
 		assert(!response.results.front().status.compare("success"));
-
 	}
 
 	return virt_cluster;
 }
 
 // freeze virtual cluster for mmbwmon measurement
-static void freeze_virt_cluster(fast::MQTT_communicator &comm, size_t slot) {
-	std::vector<fast::msg::migfra::PCI_id> pci_ids;
-	pci_ids.push_back(fast::msg::migfra::PCI_id(0x15b3, 0x1004));
-
+template<typename T>
+static void suspend_resume_virt_cluster(fast::MQTT_communicator &comm, size_t slot) {
+	// request freeze
 	for (auto cluster_elem : co_config_virt_cluster[slot]) {
 		std::string topic = "fast/migfra/" + cluster_elem.first + "/task";
 
-		auto task = std::make_shared<fast::msg::migfra::Suspend>(cluster_elem.second.name, true);
+		auto task = std::make_shared<T>(cluster_elem.second.name, true);
 
 		fast::msg::migfra::Task_container m;
 		m.tasks.push_back(task);
@@ -239,6 +237,7 @@ static void freeze_virt_cluster(fast::MQTT_communicator &comm, size_t slot) {
 		comm.send_message(m.to_string(), topic);
 	}
 
+	// wait for results
 	fast::msg::migfra::Result_container response;
 	std::unordered_map<std::string, std::string> virt_cluster;
 	for (auto cluster_elem : co_config_virt_cluster[slot]) {
@@ -324,23 +323,6 @@ static size_t execute_command(fast::MQTT_communicator &comm, std::string command
 	return 0;
 }
 
-// thaws all cgroups with the name @param cgroup_name
-// static void thaw_remote_cgroup(fast::MQTT_communicator &comm, std::string cgroup_name) {
-//	const fast::msg::agent::mmbwmon::restart m(cgroup_name);
-//	for (std::string mach : machines) {
-//		std::string topic = "fast/agent/" + mach + "/mmbwmon/restart";
-//		// std::cout << "sending message \n topic: " << topic << "\n message:\n" << m.to_string() << std::endl;
-//		comm.send_message(m.to_string(), topic);
-//	}
-//
-//	for (std::string mach : machines) {
-//		std::string topic = "fast/agent/" + mach + "/mmbwmon/restart/ack";
-//		// std::cout << "waiting on topic: " << topic << " ... " << std::flush;
-//		comm.get_message(topic);
-//		// std::cout << "done\n";
-//	}
-//}
-
 static double run_distgen(fast::MQTT_communicator &comm, sched_configT conf) {
 
 	// ask for measurements
@@ -349,7 +331,7 @@ static double run_distgen(fast::MQTT_communicator &comm, sched_configT conf) {
 
 		// TODO check if we can use the same type
 		m.cores.resize(conf.cpus.size());
-		for (int i = 0; i < conf.cpus.size(); ++i) {
+		for (unsigned int i = 0; i < conf.cpus.size(); ++i) {
 			m.cores[i] = static_cast<size_t>(conf.cpus[i]);
 		}
 
@@ -396,7 +378,7 @@ static void coschedule_queue(const std::vector<std::string> &command_queue, fast
 		// check if two are running
 		if (co_config_in_use[0] && co_config_in_use[1]) {
 			// std::cout << "0: freezing old" << std::endl;
-			//			freeze_remote_cgroup(comm, co_config_cgroup_name[old_config]);
+			suspend_resume_virt_cluster<fast::msg::migfra::Suspend>(comm, old_config);
 		}
 
 		// measure distgen result
@@ -408,7 +390,7 @@ static void coschedule_queue(const std::vector<std::string> &command_queue, fast
 
 		if (co_config_in_use[0] && co_config_in_use[1]) {
 			// std::cout << "0: thaw old" << std::endl;
-			//			thaw_remote_cgroup(comm, co_config_cgroup_name[old_config]);
+			suspend_resume_virt_cluster<fast::msg::migfra::Resume>(comm, old_config);
 
 			std::cout << ">> \t Estimating total usage of "
 					  << (1 - co_config_distgend[0]) + (1 - co_config_distgend[1]);
@@ -416,7 +398,7 @@ static void coschedule_queue(const std::vector<std::string> &command_queue, fast
 			if ((1 - co_config_distgend[0]) + (1 - co_config_distgend[1]) > 0.9) {
 				std::cout << " -> we will run one" << std::endl;
 				// std::cout << "0: freezing new" << std::endl;
-				//				freeze_remote_cgroup(comm, co_config_cgroup_name[new_config]);
+				suspend_resume_virt_cluster<fast::msg::migfra::Suspend>(comm, new_config);
 				work_counter_lock.unlock();
 
 				// std::cout << "0: wait for old" << std::endl;
@@ -425,7 +407,7 @@ static void coschedule_queue(const std::vector<std::string> &command_queue, fast
 				stop_virt_cluster(comm, old_config);
 
 				// std::cout << "0: thaw new" << std::endl;
-				//				thaw_remote_cgroup(comm, co_config_cgroup_name[new_config]);
+				suspend_resume_virt_cluster<fast::msg::migfra::Resume>(comm, new_config);
 			} else {
 				std::cout << " -> we will run both applications" << std::endl;
 			}
@@ -440,7 +422,7 @@ static void coschedule_queue(const std::vector<std::string> &command_queue, fast
 	worker_counter_cv.wait(work_counter_lock, [] { return workers_active == 0; });
 
 	// stop all running virtual clusters
-	for (int i = 0; i < SLOTS; ++i) {
+	for (unsigned int i = 0; i < SLOTS; ++i) {
 		stop_virt_cluster(comm, i);
 	}
 }
