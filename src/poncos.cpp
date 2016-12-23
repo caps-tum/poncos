@@ -133,7 +133,7 @@ static void parse_options(size_t argc, const char **argv) {
 }
 
 // stop isolated environments on all machines in given slot
-static void stop_virt_cluster(fast::MQTT_communicator &comm, const size_t slot) {
+static void stop_virt_cluster(const fast::MQTT_communicator &comm, const size_t slot) {
 
 	// send stop request
 	for (auto cluster_elem : co_config_virt_cluster[slot]) {
@@ -162,7 +162,7 @@ static void stop_virt_cluster(fast::MQTT_communicator &comm, const size_t slot) 
 }
 
 // start isolated environments on all machines in given slot
-static std::unordered_map<std::string, vm_pool_elemT> start_virt_cluster(fast::MQTT_communicator &comm, size_t slot) {
+static std::unordered_map<std::string, vm_pool_elemT> start_virt_cluster(const fast::MQTT_communicator &comm, size_t slot) {
 	std::vector<fast::msg::migfra::PCI_id> pci_ids;
 	pci_ids.push_back(fast::msg::migfra::PCI_id(0x15b3, 0x1004));
 
@@ -230,7 +230,7 @@ static std::unordered_map<std::string, vm_pool_elemT> start_virt_cluster(fast::M
 
 // freeze virtual cluster for mmbwmon measurement
 template<typename T>
-static void suspend_resume_virt_cluster(fast::MQTT_communicator &comm, size_t slot) {
+static void suspend_resume_virt_cluster(const fast::MQTT_communicator &comm, size_t slot) {
 	// request freeze
 	for (auto cluster_elem : co_config_virt_cluster[slot]) {
 		std::string topic = "fast/migfra/" + cluster_elem.first + "/task";
@@ -262,7 +262,10 @@ static void suspend_resume_virt_cluster(fast::MQTT_communicator &comm, size_t sl
 }
 
 // called after a command was completed
-static void command_done(const size_t config) {
+static void command_done(const fast::MQTT_communicator &comm, const size_t config) {
+	std::cout << "Stop virtual cluster ... " << std::endl;
+	stop_virt_cluster(comm, config);
+
 	std::lock_guard<std::mutex> work_counter_lock(worker_counter_mutex);
 	--workers_active;
 	co_config_in_use[config] = false;
@@ -271,7 +274,7 @@ static void command_done(const size_t config) {
 }
 
 // executed by a new thread, calls system to start the application
-void execute_command_internal(std::string command, std::string cg_name, size_t config_used) {
+void execute_command_internal(const fast::MQTT_communicator &comm, std::string command, std::string cg_name, size_t config_used) {
 	command += " 2>&1 ";
 	// command += "| tee ";
 	command += "> ";
@@ -282,7 +285,7 @@ void execute_command_internal(std::string command, std::string cg_name, size_t c
 
 	// we are done
 	std::cout << ">> \t '" << command << "' completed at configuration " << config_used << std::endl;
-	command_done(config_used);
+	command_done(comm, config_used);
 }
 
 // command input: mpiexec -np X PONCOS command p0 p1
@@ -297,7 +300,7 @@ static std::string parse_command(std::string comm, std::unordered_map<std::strin
 	return comm;
 }
 
-static size_t execute_command(fast::MQTT_communicator &comm, std::string command,
+static size_t execute_command(const fast::MQTT_communicator &comm, std::string command,
 							  const std::unique_lock<std::mutex> &work_counter_lock) {
 	static size_t cgroups_counter = 0;
 
@@ -325,7 +328,7 @@ static size_t execute_command(fast::MQTT_communicator &comm, std::string command
 			// wait for MPI layer to come up
 			std::this_thread::sleep_for(std::chrono::seconds(2));
 
-			thread_pool.emplace_back(execute_command_internal, command, cg_name, i);
+			thread_pool.emplace_back(execute_command_internal, std::ref(comm), command, cg_name, i);
 
 			return i;
 		}
@@ -336,7 +339,7 @@ static size_t execute_command(fast::MQTT_communicator &comm, std::string command
 	return 0;
 }
 
-static double run_distgen(fast::MQTT_communicator &comm, sched_configT conf) {
+static double run_distgen(const fast::MQTT_communicator &comm, sched_configT conf) {
 
 	// ask for measurements
 	{
@@ -373,7 +376,7 @@ static double run_distgen(fast::MQTT_communicator &comm, sched_configT conf) {
 	return ret;
 }
 
-static void coschedule_queue(const std::vector<std::string> &command_queue, fast::MQTT_communicator &comm) {
+static void coschedule_queue(const std::vector<std::string> &command_queue, const fast::MQTT_communicator &comm) {
 	// for all commands
 	for (auto command : command_queue) {
 		// wait until workers_active < SLOTS
@@ -416,9 +419,6 @@ static void coschedule_queue(const std::vector<std::string> &command_queue, fast
 
 				// std::cout << "0: wait for old" << std::endl;
 				thread_pool[co_config_thread_index[old_config]].join();
-				std::cout << "Stop virtual cluster ... " << std::endl;
-				stop_virt_cluster(comm, old_config);
-
 				// std::cout << "0: thaw new" << std::endl;
 				suspend_resume_virt_cluster<fast::msg::migfra::Resume>(comm, new_config);
 			} else {
@@ -480,7 +480,7 @@ int main(int argc, char const *argv[]) {
 	}
 	std::cout << "==============\n";
 
-	fast::MQTT_communicator comm("fast/poncos", "fast/poncos", "fast/poncos", server, static_cast<int>(port), 60);
+	const fast::MQTT_communicator comm("fast/poncos", "fast/poncos", "fast/poncos", server, static_cast<int>(port), 60);
 
 	// subscribe to the various topics
 	for (std::string mach : machines) {
