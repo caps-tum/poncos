@@ -186,13 +186,17 @@ static std::unordered_map<std::string, vm_pool_elemT> start_virt_cluster(fast::M
 		// -- vm name
 		std::regex name_regex("(<name>)(.+)(</name>)");
 		slot_xml = std::regex_replace(slot_xml, name_regex, "$1" + free_vm.name + "$3");
+		// -- disc
+		std::regex disk_regex("(.*<source file=\".*)(parastation-.*)(\.qcow2\"/>)");
+		slot_xml = std::regex_replace(slot_xml, disk_regex, "$1" + free_vm.name + "$3");
+
 		// -- uuid
 		uuid_t uuid;
 		uuid_generate(uuid);
 		char uuid_char_str[40];
 		uuid_unparse(uuid, uuid_char_str);
 		std::string uuid_str((const char*)uuid_char_str);
-		std::regex uuid_regex("[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89aAbB][a-f0-9]{3}-[a-f0-9]{12}");
+		std::regex uuid_regex("[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}");
 		slot_xml = std::regex_replace(slot_xml, uuid_regex, uuid_str);
 		// -- mac
 		std::regex mac_regex("([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})");
@@ -203,7 +207,8 @@ static std::unordered_map<std::string, vm_pool_elemT> start_virt_cluster(fast::M
 		fast::msg::migfra::Task_container m;
 		m.tasks.push_back(task);
 
-		std::cout << "sending message \n topic: " << topic << "\n message:\n" << m.to_string() << std::endl;
+//		std::cout << "sending message \n topic: " << topic << "\n message:\n" << m.to_string() << std::endl;
+		std::cout << "sending message \n topic: " << topic << "\n Start " << free_vm.name << std::endl;
 
 		comm.send_message(m.to_string(), topic);
 
@@ -216,6 +221,7 @@ static std::unordered_map<std::string, vm_pool_elemT> start_virt_cluster(fast::M
 		// wait for VMs to be started
 		std::string topic = "fast/migfra/" + *mach + "/result";
 		response.from_string(comm.get_message(topic));
+
 		assert(!response.results.front().status.compare("success"));
 	}
 
@@ -246,7 +252,12 @@ static void suspend_resume_virt_cluster(fast::MQTT_communicator &comm, size_t sl
 		// wait for VMs to be started
 		std::string topic = "fast/migfra/" + cluster_elem.first + "/result";
 		response.from_string(comm.get_message(topic));
-		assert(!response.results.front().status.compare("success"));
+
+		int status = response.results.front().status.compare("success");
+		if (status) {
+			assert(!response.results.front().details.compare("Error suspending domain: Requested operation is not valid: domain is not running"));
+		}
+
 	}
 }
 
