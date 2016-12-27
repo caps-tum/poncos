@@ -13,6 +13,7 @@
 #include <condition_variable>
 #include <fstream>
 #include <iostream>
+#include <iomanip>
 #include <regex>
 #include <string>
 #include <thread>
@@ -482,23 +483,23 @@ int main(int argc, char const *argv[]) {
 	std::cout << "MQTT ready!\n\n";
 
 	// start virtual clusters on all slots
-	auto start_time = 0;
+	unsigned int start_time = 0;
 	for (size_t slot=0; slot<SLOTS; ++slot) {
 		start_time += time_measure<>::execute(start_virt_cluster, comm, slot);
 	}
 
-	const auto runtime = time_measure<>::execute(coschedule_queue, command_queue, comm);
+	const unsigned int runtime = time_measure<>::execute(coschedule_queue, command_queue, comm);
 	// stop virtual clusters on all slots
-	auto stop_time = 0;
+	unsigned int stop_time = 0;
 	for (size_t slot=0; slot<SLOTS; ++slot) {
 		stop_time += time_measure<>::execute(stop_virt_cluster, comm, slot);
 	}
 
-	const size_t maxwidth = std::max({start_time, runtime, stop_time});
-	std::cout << "Start time: " << start_time << " ms" << std::endl;
-	std::cout << "Runtime   : " << runtime << " ms" << std::endl;
-	std::cout << "Stop time : " << stop_time<< " ms" << std::endl;
-	std::cout << "Total time: " << start_time + runtime + stop_time<< " ms" << std::endl;
+	const size_t maxwidth = std::to_string(std::max({start_time, runtime, stop_time})).length();
+	std::cout << "Start time: " << std::setw(maxwidth) << start_time << " ms" << std::endl;
+	std::cout << "Runtime   : " << std::setw(maxwidth) << runtime << " ms" << std::endl;
+	std::cout << "Stop time : " << std::setw(maxwidth) << stop_time<< " ms" << std::endl;
+	std::cout << "Total time: " << std::setw(maxwidth) << start_time + runtime + stop_time<< " ms" << std::endl;
 
 	cleanup();
 }
