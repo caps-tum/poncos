@@ -162,7 +162,7 @@ static void stop_virt_cluster(const fast::MQTT_communicator &comm, const size_t 
 }
 
 // start isolated environments on all machines in given slot
-static std::unordered_map<std::string, vm_pool_elemT> start_virt_cluster(const fast::MQTT_communicator &comm, size_t slot) {
+void start_virt_cluster(const fast::MQTT_communicator &comm, size_t slot) {
 	std::vector<fast::msg::migfra::PCI_id> pci_ids;
 	pci_ids.push_back(fast::msg::migfra::PCI_id(0x15b3, 0x1004));
 
@@ -207,7 +207,7 @@ static std::unordered_map<std::string, vm_pool_elemT> start_virt_cluster(const f
 		fast::msg::migfra::Task_container m;
 		m.tasks.push_back(task);
 
-//		std::cout << "sending message \n topic: " << topic << "\n message:\n" << m.to_string() << std::endl;
+		//		std::cout << "sending message \n topic: " << topic << "\n message:\n" << m.to_string() << std::endl;
 		std::cout << "sending message \n topic: " << topic << "\n Start " << free_vm.name << std::endl;
 
 		comm.send_message(m.to_string(), topic);
@@ -225,7 +225,7 @@ static std::unordered_map<std::string, vm_pool_elemT> start_virt_cluster(const f
 		assert(!response.results.front().status.compare("success"));
 	}
 
-	return virt_cluster;
+	co_config_virt_cluster[slot] = virt_cluster;
 }
 
 // freeze virtual cluster for mmbwmon measurement
@@ -262,10 +262,7 @@ static void suspend_resume_virt_cluster(const fast::MQTT_communicator &comm, siz
 }
 
 // called after a command was completed
-static void command_done(const fast::MQTT_communicator &comm, const size_t config) {
-	std::cout << "Stop virtual cluster ... " << std::endl;
-	stop_virt_cluster(comm, config);
-
+static void command_done(const size_t config) {
 	std::lock_guard<std::mutex> work_counter_lock(worker_counter_mutex);
 	--workers_active;
 	co_config_in_use[config] = false;
@@ -274,7 +271,7 @@ static void command_done(const fast::MQTT_communicator &comm, const size_t confi
 }
 
 // executed by a new thread, calls system to start the application
-void execute_command_internal(const fast::MQTT_communicator &comm, std::string command, std::string cg_name, size_t config_used) {
+void execute_command_internal(std::string command, std::string cg_name, size_t config_used) {
 	command += " 2>&1 ";
 	// command += "| tee ";
 	command += "> ";
@@ -285,7 +282,7 @@ void execute_command_internal(const fast::MQTT_communicator &comm, std::string c
 
 	// we are done
 	std::cout << ">> \t '" << command << "' completed at configuration " << config_used << std::endl;
-	command_done(comm, config_used);
+	command_done(config_used);
 }
 
 // command input: mpiexec -np X PONCOS command p0 p1
@@ -300,8 +297,7 @@ static std::string parse_command(std::string comm, std::unordered_map<std::strin
 	return comm;
 }
 
-static size_t execute_command(const fast::MQTT_communicator &comm, std::string command,
-							  const std::unique_lock<std::mutex> &work_counter_lock) {
+static size_t execute_command(std::string command, const std::unique_lock<std::mutex> &work_counter_lock) {
 	static size_t cgroups_counter = 0;
 
 	assert(work_counter_lock.owns_lock());
@@ -318,9 +314,6 @@ static size_t execute_command(const fast::MQTT_communicator &comm, std::string c
 			co_config_cgroup_name[i] = cg_name;
 			co_config_thread_index[i] = thread_pool.size();
 
-			// start isolated environments (e.g, VMs)
-			co_config_virt_cluster[i] = start_virt_cluster(comm, i);
-
 			command = parse_command(command, co_config_virt_cluster[i]);
 
 			std::cout << ">> \t starting '" << command << "' at configuration " << i << std::endl;
@@ -328,7 +321,7 @@ static size_t execute_command(const fast::MQTT_communicator &comm, std::string c
 			// wait for MPI layer to come up
 			std::this_thread::sleep_for(std::chrono::seconds(2));
 
-			thread_pool.emplace_back(execute_command_internal, std::ref(comm), command, cg_name, i);
+			thread_pool.emplace_back(execute_command_internal, command, cg_name, i);
 
 			return i;
 		}
@@ -384,7 +377,7 @@ static void coschedule_queue(const std::vector<std::string> &command_queue, cons
 		worker_counter_cv.wait(work_counter_lock, [] { return workers_active < SLOTS; });
 
 		// start the new job
-		const size_t new_config = execute_command(comm, command, work_counter_lock);
+		const size_t new_config = execute_command(command, work_counter_lock);
 		// old config is used to run distgen
 		const size_t old_config = (new_config + 1) % SLOTS;
 
@@ -402,14 +395,14 @@ static void coschedule_queue(const std::vector<std::string> &command_queue, cons
 		co_config_distgend[new_config] = run_distgen(comm, co_configs[old_config]);
 
 		std::cout << ">> \t Result for command '" << command << "' is: " << 1 - co_config_distgend[new_config]
-				  << std::endl;
+			<< std::endl;
 
 		if (co_config_in_use[0] && co_config_in_use[1]) {
 			// std::cout << "0: thaw old" << std::endl;
 			suspend_resume_virt_cluster<fast::msg::migfra::Resume>(comm, old_config);
 
 			std::cout << ">> \t Estimating total usage of "
-					  << (1 - co_config_distgend[0]) + (1 - co_config_distgend[1]);
+				<< (1 - co_config_distgend[0]) + (1 - co_config_distgend[1]);
 
 			if ((1 - co_config_distgend[0]) + (1 - co_config_distgend[1]) > 0.9) {
 				std::cout << " -> we will run one" << std::endl;
@@ -433,11 +426,6 @@ static void coschedule_queue(const std::vector<std::string> &command_queue, cons
 	// wait until all workers are finished before deleting the cgroup
 	std::unique_lock<std::mutex> work_counter_lock(worker_counter_mutex);
 	worker_counter_cv.wait(work_counter_lock, [] { return workers_active == 0; });
-
-	// stop all running virtual clusters
-	for (unsigned int i = 0; i < SLOTS; ++i) {
-		stop_virt_cluster(comm, i);
-	}
 }
 
 static void cleanup() {
@@ -496,8 +484,24 @@ int main(int argc, char const *argv[]) {
 
 	std::cout << "MQTT ready!\n\n";
 
+	// start virtual clusters on all slots
+	auto start_time = 0;
+	for (size_t slot=0; slot<SLOTS; ++slot) {
+		start_time += time_measure<>::execute(start_virt_cluster, comm, slot);
+	}
+
 	const auto runtime = time_measure<>::execute(coschedule_queue, command_queue, comm);
-	std::cout << "total runtime: " << runtime << " ms" << std::endl;
+	// stop virtual clusters on all slots
+	auto stop_time = 0;
+	for (size_t slot=0; slot<SLOTS; ++slot) {
+		stop_time += time_measure<>::execute(stop_virt_cluster, comm, slot);
+	}
+
+	const size_t maxwidth = std::max({start_time, runtime, stop_time});
+	std::cout << "Start time: " << start_time << " ms" << std::endl;
+	std::cout << "Runtime   : " << runtime << " ms" << std::endl;
+	std::cout << "Stop time : " << stop_time<< " ms" << std::endl;
+	std::cout << "Total time: " << start_time + runtime + stop_time<< " ms" << std::endl;
 
 	cleanup();
 }
