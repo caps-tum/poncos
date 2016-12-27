@@ -288,7 +288,7 @@ void execute_command_internal(std::string command, std::string cg_name, size_t c
 // command input: mpiexec -np X PONCOS command p0 p1
 // run instead  : mpiexec -np X -H <virt_cluster> command p0 p1
 static std::string parse_command(std::string comm, std::unordered_map<std::string, vm_pool_elemT> virt_cluster) {
-	std::string replace = "-H ";
+	std::string replace = "-hosts ";
 	for (auto cluster_elem : virt_cluster) {
 		replace += cluster_elem.second.name + ",";
 	}
@@ -317,9 +317,6 @@ static size_t execute_command(std::string command, const std::unique_lock<std::m
 			command = parse_command(command, co_config_virt_cluster[i]);
 
 			std::cout << ">> \t starting '" << command << "' at configuration " << i << std::endl;
-
-			// wait for MPI layer to come up
-			std::this_thread::sleep_for(std::chrono::seconds(2));
 
 			thread_pool.emplace_back(execute_command_internal, command, cg_name, i);
 
