@@ -11,8 +11,6 @@
 #ifndef pons_hpp
 #define pons_hpp
 
-#include "poncos/job.hpp"
-
 #include <cassert>
 #include <condition_variable>
 #include <list>
@@ -54,7 +52,6 @@ struct jobT : public fast::Serializable {
 	std::string command;
 };
 std::ostream &operator<<(std::ostream &os, const jobT &job);
-
 
 struct job_queueT : public fast::Serializable {
 	job_queueT() = default;
