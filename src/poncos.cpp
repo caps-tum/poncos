@@ -44,9 +44,6 @@ static std::string slot_path;
 // marker if a slot is in use
 static bool co_config_in_use[SLOTS] = {false, false};
 
-// cgroup name running in a specific slot
-static std::string co_config_cgroup_name[SLOTS];
-
 // distgen results of a slot
 static double co_config_distgend[SLOTS];
 
@@ -74,8 +71,8 @@ static std::vector<std::string> machines;
 	std::cout << "\t --server \t\t URI of the MQTT broker. \t\t\t Required!\n";
 	std::cout << "\t --port \t\t Port of the MQTT broker. \t\t\t Default: 1883\n";
 	std::cout << "\t --queue \t\t Filename for the job queue. \t\t\t Required!\n";
-	std::cout << "\t --machine \t\t Filename containing node names. \t\t\t Required!\n";
-	std::cout << "\t --slot-path \t\t Path to XML slot specifications. \t\t\t Required!\n";
+	std::cout << "\t --machine \t\t Filename containing node names. \t\t Required!\n";
+	std::cout << "\t --slot-path \t\t Path to XML slot specifications. \t\t Required!\n";
 	exit(0);
 }
 
@@ -309,7 +306,6 @@ static size_t execute_command(std::string command, const std::unique_lock<std::m
 	for (size_t i = 0; i < SLOTS; ++i) {
 		if (!co_config_in_use[i]) {
 			co_config_in_use[i] = true;
-			co_config_cgroup_name[i] = cmd_name;
 			co_config_thread_index[i] = thread_pool.size();
 
 			command = parse_command(command, co_config_virt_cluster[i]);
