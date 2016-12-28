@@ -271,11 +271,11 @@ static void command_done(const size_t config) {
 }
 
 // executed by a new thread, calls system to start the application
-void execute_command_internal(std::string command, std::string cg_name, size_t config_used) {
+void execute_command_internal(std::string command, std::string cmd_name, size_t config_used) {
 	command += " 2>&1 ";
 	// command += "| tee ";
 	command += "> ";
-	command += cg_name + ".log";
+	command += cmd_name + ".log";
 
 	auto temp = system(command.c_str());
 	assert(temp != -1);
@@ -298,27 +298,25 @@ static std::string parse_command(std::string comm, std::unordered_map<std::strin
 }
 
 static size_t execute_command(std::string command, const std::unique_lock<std::mutex> &work_counter_lock) {
-	static size_t cgroups_counter = 0;
+	static size_t cmd_counter = 0;
 
 	assert(work_counter_lock.owns_lock());
 	++workers_active;
 
-	std::string cg_name = cgroup_name_from_id(cgroups_counter);
-	// cgroup is created by the bash script
-	++cgroups_counter;
+	std::string cmd_name = "cmd_" + std::to_string(cmd_counter++);
 
 	// search for a free slot and assign it to a new job
 	for (size_t i = 0; i < SLOTS; ++i) {
 		if (!co_config_in_use[i]) {
 			co_config_in_use[i] = true;
-			co_config_cgroup_name[i] = cg_name;
+			co_config_cgroup_name[i] = cmd_name;
 			co_config_thread_index[i] = thread_pool.size();
 
 			command = parse_command(command, co_config_virt_cluster[i]);
 
 			std::cout << ">> \t starting '" << command << "' at configuration " << i << std::endl;
 
-			thread_pool.emplace_back(execute_command_internal, command, cg_name, i);
+			thread_pool.emplace_back(execute_command_internal, command, cmd_name, i);
 
 			return i;
 		}
