@@ -22,7 +22,6 @@
 #include <uuid/uuid.h>
 
 #include "poncos/poncos.hpp"
-#include "poncos/job.hpp"
 #include "poncos/time_measure.hpp"
 
 #include <fast-lib/message/agent/mmbwmon/ack.hpp>
