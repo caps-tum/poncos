@@ -22,6 +22,7 @@
 #include <uuid/uuid.h>
 
 #include "poncos/poncos.hpp"
+#include "poncos/job.hpp"
 #include "poncos/time_measure.hpp"
 
 #include <fast-lib/message/agent/mmbwmon/ack.hpp>
@@ -281,19 +282,7 @@ void execute_command_internal(std::string command, std::string cmd_name, size_t 
 	command_done(config_used);
 }
 
-// command input: mpiexec -np X PONCOS command p0 p1
-// run instead  : mpiexec -np X -H <virt_cluster> command p0 p1
-static std::string parse_command(std::string comm, std::unordered_map<std::string, vm_pool_elemT> virt_cluster) {
-	std::string replace = "-hosts ";
-	for (auto cluster_elem : virt_cluster) {
-		replace += cluster_elem.second.name + ",";
-	}
-	comm.replace(comm.find("PONCOS"), std::string("PONCOS").size(), replace);
-
-	return comm;
-}
-
-static size_t execute_command(std::string command, const std::unique_lock<std::mutex> &work_counter_lock) {
+static size_t execute_command(jobT job, const std::unique_lock<std::mutex> &work_counter_lock) {
 	static size_t cmd_counter = 0;
 
 	assert(work_counter_lock.owns_lock());
@@ -307,7 +296,7 @@ static size_t execute_command(std::string command, const std::unique_lock<std::m
 			co_config_in_use[i] = true;
 			co_config_thread_index[i] = thread_pool.size();
 
-			command = parse_command(command, co_config_virt_cluster[i]);
+			std::string command = job.generate_command(co_config_virt_cluster[i]);
 
 			std::cout << ">> \t starting '" << command << "' at configuration " << i << std::endl;
 
@@ -359,15 +348,15 @@ static double run_distgen(const fast::MQTT_communicator &comm, sched_configT con
 	return ret;
 }
 
-static void coschedule_queue(const std::vector<std::string> &command_queue, const fast::MQTT_communicator &comm) {
+static void coschedule_queue(const job_queueT &job_queue, const fast::MQTT_communicator &comm) {
 	// for all commands
-	for (auto command : command_queue) {
+	for (auto job : job_queue.jobs) {
 		// wait until workers_active < SLOTS
 		std::unique_lock<std::mutex> work_counter_lock(worker_counter_mutex);
 		worker_counter_cv.wait(work_counter_lock, [] { return workers_active < SLOTS; });
 
 		// start the new job
-		const size_t new_config = execute_command(command, work_counter_lock);
+		const size_t new_config = execute_command(job, work_counter_lock);
 		// old config is used to run distgen
 		const size_t old_config = (new_config + 1) % SLOTS;
 
@@ -384,7 +373,7 @@ static void coschedule_queue(const std::vector<std::string> &command_queue, cons
 		std::cout << ">> \t Running distgend at " << old_config << std::endl;
 		co_config_distgend[new_config] = run_distgen(comm, co_configs[old_config]);
 
-		std::cout << ">> \t Result for command '" << command << "' is: " << 1 - co_config_distgend[new_config]
+		std::cout << ">> \t Result for command '" << job << "' is: " << 1 - co_config_distgend[new_config]
 				  << std::endl;
 
 		if (co_config_in_use[0] && co_config_in_use[1]) {
@@ -434,8 +423,8 @@ int main(int argc, char const *argv[]) {
 	// fill the command qeue
 	std::cout << "Reading command queue " << queue_filename << " ...";
 	std::cout.flush();
-	std::vector<std::string> command_queue;
-	read_file(queue_filename, command_queue);
+	job_queueT job_queue;
+	read_job_queue_file(queue_filename, job_queue);
 	std::cout << " done!" << std::endl;
 
 	// fill the machine file
@@ -446,8 +435,8 @@ int main(int argc, char const *argv[]) {
 
 	std::cout << "Command queue:\n";
 	std::cout << "==============\n";
-	for (std::string c : command_queue) {
-		std::cout << c << "\n";
+	for (auto job : job_queue.jobs) {
+		std::cout << job << "\n";
 	}
 	std::cout << "==============\n";
 
@@ -480,7 +469,7 @@ int main(int argc, char const *argv[]) {
 		start_time += time_measure<>::execute(start_virt_cluster, comm, slot);
 	}
 
-	const unsigned int runtime = time_measure<>::execute(coschedule_queue, command_queue, comm);
+	const unsigned int runtime = time_measure<>::execute(coschedule_queue, job_queue, comm);
 	// stop virtual clusters on all slots
 	unsigned int stop_time = 0;
 	for (size_t slot = 0; slot < SLOTS; ++slot) {

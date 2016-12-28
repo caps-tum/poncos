@@ -36,6 +36,15 @@ void read_file(std::string filename, std::vector<std::string> &command_queue) {
 	}
 }
 
+void read_job_queue_file(std::string filename, job_queueT &job_queue) {
+	std::fstream job_queue_file;
+	job_queue_file.open(filename);
+	std::stringstream job_queue_stream;
+	job_queue_stream << job_queue_file.rdbuf();
+
+	job_queue = job_queueT(job_queue_stream.str());
+}
+
 std::string cgroup_name_from_id(size_t id) {
 	std::string cg_name("pons_");
 	cg_name += std::to_string(id);

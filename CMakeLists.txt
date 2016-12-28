@@ -88,7 +88,7 @@ include_directories(include)
 
 ########
 # Compiling and linking
-add_executable(pons_macsnb src/poncos.cpp src/helper.cpp system_config/sandybridge_EP.cpp system_config/vm_pool.cpp)
+add_executable(pons_macsnb src/poncos.cpp src/helper.cpp src/job.cpp system_config/sandybridge_EP.cpp system_config/vm_pool.cpp)
 add_dependencies(pons_macsnb libfast)
 target_link_libraries(pons_macsnb fastlib ${CMAKE_THREAD_LIBS_INIT} rt uuid)
 set_property(TARGET pons_macsnb PROPERTY C_STANDARD 99)
