@@ -12,8 +12,8 @@
 #include <chrono>
 #include <condition_variable>
 #include <fstream>
-#include <iostream>
 #include <iomanip>
+#include <iostream>
 #include <regex>
 #include <string>
 #include <thread>
@@ -196,7 +196,7 @@ void start_virt_cluster(const fast::MQTT_communicator &comm, size_t slot) {
 		uuid_generate(uuid);
 		char uuid_char_str[40];
 		uuid_unparse(uuid, uuid_char_str);
-		std::string uuid_str((const char*)uuid_char_str);
+		std::string uuid_str((const char *)uuid_char_str);
 		std::regex uuid_regex("[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}");
 		slot_xml = std::regex_replace(slot_xml, uuid_regex, uuid_str);
 		// -- mac
@@ -230,8 +230,7 @@ void start_virt_cluster(const fast::MQTT_communicator &comm, size_t slot) {
 }
 
 // freeze virtual cluster for mmbwmon measurement
-template<typename T>
-static void suspend_resume_virt_cluster(const fast::MQTT_communicator &comm, size_t slot) {
+template <typename T> static void suspend_resume_virt_cluster(const fast::MQTT_communicator &comm, size_t slot) {
 	// request freeze
 	for (auto cluster_elem : co_config_virt_cluster[slot]) {
 		std::string topic = "fast/migfra/" + cluster_elem.first + "/task";
@@ -256,9 +255,9 @@ static void suspend_resume_virt_cluster(const fast::MQTT_communicator &comm, siz
 
 		int status = response.results.front().status.compare("success");
 		if (status) {
-			assert(!response.results.front().details.compare("Error suspending domain: Requested operation is not valid: domain is not running"));
+			assert(!response.results.front().details.compare(
+				"Error suspending domain: Requested operation is not valid: domain is not running"));
 		}
-
 	}
 }
 
@@ -393,14 +392,14 @@ static void coschedule_queue(const std::vector<std::string> &command_queue, cons
 		co_config_distgend[new_config] = run_distgen(comm, co_configs[old_config]);
 
 		std::cout << ">> \t Result for command '" << command << "' is: " << 1 - co_config_distgend[new_config]
-			<< std::endl;
+				  << std::endl;
 
 		if (co_config_in_use[0] && co_config_in_use[1]) {
 			// std::cout << "0: thaw old" << std::endl;
 			suspend_resume_virt_cluster<fast::msg::migfra::Resume>(comm, old_config);
 
 			std::cout << ">> \t Estimating total usage of "
-				<< (1 - co_config_distgend[0]) + (1 - co_config_distgend[1]);
+					  << (1 - co_config_distgend[0]) + (1 - co_config_distgend[1]);
 
 			if ((1 - co_config_distgend[0]) + (1 - co_config_distgend[1]) > 0.9) {
 				std::cout << " -> we will run one" << std::endl;
@@ -484,22 +483,22 @@ int main(int argc, char const *argv[]) {
 
 	// start virtual clusters on all slots
 	unsigned int start_time = 0;
-	for (size_t slot=0; slot<SLOTS; ++slot) {
+	for (size_t slot = 0; slot < SLOTS; ++slot) {
 		start_time += time_measure<>::execute(start_virt_cluster, comm, slot);
 	}
 
 	const unsigned int runtime = time_measure<>::execute(coschedule_queue, command_queue, comm);
 	// stop virtual clusters on all slots
 	unsigned int stop_time = 0;
-	for (size_t slot=0; slot<SLOTS; ++slot) {
+	for (size_t slot = 0; slot < SLOTS; ++slot) {
 		stop_time += time_measure<>::execute(stop_virt_cluster, comm, slot);
 	}
 
 	const size_t maxwidth = std::to_string(std::max({start_time, runtime, stop_time})).length();
 	std::cout << "Start time: " << std::setw(maxwidth) << start_time << " ms" << std::endl;
 	std::cout << "Runtime   : " << std::setw(maxwidth) << runtime << " ms" << std::endl;
-	std::cout << "Stop time : " << std::setw(maxwidth) << stop_time<< " ms" << std::endl;
-	std::cout << "Total time: " << std::setw(maxwidth) << start_time + runtime + stop_time<< " ms" << std::endl;
+	std::cout << "Stop time : " << std::setw(maxwidth) << stop_time << " ms" << std::endl;
+	std::cout << "Total time: " << std::setw(maxwidth) << start_time + runtime + stop_time << " ms" << std::endl;
 
 	cleanup();
 }
