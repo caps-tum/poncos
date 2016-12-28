@@ -205,7 +205,6 @@ void start_virt_cluster(const fast::MQTT_communicator &comm, size_t slot) {
 		fast::msg::migfra::Task_container m;
 		m.tasks.push_back(task);
 
-		//		std::cout << "sending message \n topic: " << topic << "\n message:\n" << m.to_string() << std::endl;
 		std::cout << "sending message \n topic: " << topic << "\n Start " << free_vm.name << std::endl;
 
 		comm.send_message(m.to_string(), topic);
