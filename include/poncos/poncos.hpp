@@ -16,6 +16,7 @@
 #include <list>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 #include <fast-lib/serializable.hpp>
 
