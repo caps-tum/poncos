@@ -5,7 +5,7 @@
   <currentMemory unit="KiB">20971520</currentMemory>
   <vcpu placement="static">8</vcpu>
   <cputune><vcpupin vcpu="0" cpuset="4"/><vcpupin vcpu="1" cpuset="5"/><vcpupin vcpu="2" cpuset="6"/><vcpupin vcpu="3" cpuset="7"/><vcpupin vcpu="4" cpuset="12"/><vcpupin vcpu="5" cpuset="13"/><vcpupin vcpu="6" cpuset="14"/><vcpupin vcpu="7" cpuset="15"/></cputune>
-  
+
   <os>
     <type arch="x86_64" machine="pc-i440fx-2.4">hvm</type>
     <boot dev="hd"/>
@@ -15,8 +15,8 @@
     <apic/>
   </features>
   <cpu mode="host-passthrough">
-    
-    
+
+
   <numa><cell id="0" cpus="0,1,2,3" memory="10485760" unit="KiB"/><cell id="1" cpus="4,5,6,7" memory="10485760" unit="KiB"/></numa><topology sockets="2" cores="4" threads="1"/></cpu>
   <clock offset="utc">
     <timer name="rtc" tickpolicy="catchup"/>
@@ -55,13 +55,8 @@
       <target type="virtio" name="org.qemu.guest_agent.0"/>
       <address type="virtio-serial" controller="0" bus="0" port="1"/>
     </channel>
-    <channel type="spicevmc">
-      <target type="virtio" name="com.redhat.spice.0"/>
-      <address type="virtio-serial" controller="0" bus="0" port="2"/>
-    </channel>
     <input type="mouse" bus="ps2"/>
     <input type="keyboard" bus="ps2"/>
-    <graphics type="spice" autoport="yes"/>
     <sound model="ich6">
       <address type="pci" domain="0x0000" bus="0x00" slot="0x04" function="0x0"/>
     </sound>
