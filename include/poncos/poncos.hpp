@@ -15,6 +15,15 @@
 #include <condition_variable>
 #include <string>
 #include <vector>
+#include <list>
+
+struct vm_pool_elemT {
+	std::string name;
+	std::string mac_addr;
+};
+extern std::list<vm_pool_elemT> glob_vm_pool;
+
+
 
 struct sched_configT {
 	std::vector<unsigned char> cpus;

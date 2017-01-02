@@ -1,6 +1,6 @@
 #include "poncos/poncos.hpp"
 // This defines a list of free VMs:
-std::list<vm_pool_elemT> vm_pool = std::list<vm_pool_elemT>({
+std::list<vm_pool_elemT> glob_vm_pool = std::list<vm_pool_elemT>({
 		{ "parastation-1", "00:16:3e:6e:1c:c7" },
 		{ "parastation-2", "00:16:3e:0a:5b:0f" },
 		{ "parastation-3", "00:16:3e:3c:d4:1c" },

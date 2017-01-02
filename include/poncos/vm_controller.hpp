@@ -29,11 +29,7 @@ class vm_controller : public controllerT {
 	// entries in the vector are read as: (machine index in machinefiles, #slot)
 	using execute_config = std::vector<std::pair<size_t, size_t>>;
 
-  private:
-	struct vm_pool_elemT {
-		std::string name;
-		std::string mac_addr;
-	};
+
 
   public:
 	vm_controller(const std::shared_ptr<fast::MQTT_communicator> &_comm, const std::string &machine_filename,
@@ -90,9 +86,6 @@ class vm_controller : public controllerT {
 
 	// path to the xml slot files
 	std::string slot_path;
-
-	// list of all VMs
-	std::list<vm_pool_elemT> vm_pool;
 
 	// threads used to run the applications
 	std::vector<std::thread> thread_pool;

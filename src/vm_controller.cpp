@@ -198,8 +198,8 @@ void vm_controller::start_all_VMs() {
 			std::string slot_xml = slot_stream.str();
 
 			// get free vm
-			vm_pool_elemT free_vm = vm_pool.front();
-			vm_pool.pop_front();
+			vm_pool_elemT free_vm = glob_vm_pool.front();
+			glob_vm_pool.pop_front();
 
 			// modify XML
 			// -- vm name
@@ -268,7 +268,7 @@ void vm_controller::stop_all_VMs() {
 			assert(!response.results.front().status.compare("success"));
 
 			// add VM to vm_pool
-			vm_pool.push_back(cluster_elem.second);
+			glob_vm_pool.push_back(cluster_elem.second);
 		}
 
 		// clear virtual cluster
