@@ -142,8 +142,8 @@ void vm_controller::execute_command_internal(std::string command, std::string cg
 
 std::string vm_controller::generate_command(const jobT &job, std::string cg_name, const execute_config &config) {
 	std::string host_list;
-	for (std::pair<size_t, size_t> p : config) {
-		host_list += machines()[p.first] + ",";
+	for (auto virt_cluster_node : virt_cluster[config[0].second]) {
+		host_list += virt_cluster_node.second.name + ",";
 	}
 	// remove last ','
 	host_list.pop_back();
