@@ -148,7 +148,7 @@ std::string vm_controller::generate_command(const jobT &job, std::string cg_name
 	// remove last ','
 	host_list.pop_back();
 
-	return "mpiexec -np " + std::to_string(job.nprocs) + " -hosts " + host_list + job.command;
+	return "mpiexec -np " + std::to_string(job.nprocs) + " -hosts " + host_list + " " + job.command;
 }
 
 template <typename T> void vm_controller::suspend_resume_virt_cluster(size_t slot) {
