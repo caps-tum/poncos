@@ -111,7 +111,7 @@ size_t vm_controller::execute(const jobT &job, const execute_config &config, std
 	id_to_pool.emplace(cmd_counter, thread_pool.size());
 	id_to_slot.emplace(cmd_counter, config[0].second);
 
-	std::string cmd_name = "cmd_" + std::to_string(cmd_counter++);
+	std::string cmd_name = "cmd_" + std::to_string(cmd_counter);
 
 	const std::string command = generate_command(job, cmd_name, config);
 	thread_pool.emplace_back(&vm_controller::execute_command_internal, this, command, cmd_name, config[0].second,
