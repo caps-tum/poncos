@@ -23,6 +23,10 @@
 #include "poncos/poncos.hpp"
 
 #include <fast-lib/mqtt_communicator.hpp>
+#include <fast-lib/message/migfra/pci_id.hpp>
+#include <fast-lib/message/migfra/result.hpp>
+#include <fast-lib/message/migfra/task.hpp>
+
 
 class vm_controller : public controllerT {
   public:
@@ -56,6 +60,7 @@ class vm_controller : public controllerT {
 
   private:
 	std::string generate_command(const jobT &command, std::string cg_name, const execute_config &config);
+	std::shared_ptr<fast::msg::migfra::Start> generate_start_task(size_t slot, vm_pool_elemT &free_vm);
 	void execute_command_internal(std::string command, std::string cg_name, size_t config_used,
 								  std::function<void(size_t)> callback);
 	void command_done(const size_t config);
@@ -99,7 +104,7 @@ class vm_controller : public controllerT {
 	// stores the VMs used in the two slots
 	// TODO was originalle an unordered map but the key was never used for a lookup
 	//      isn't first and second.name the same @spickartz?
-	std::vector<std::pair<std::string, vm_pool_elemT>> virt_cluster[SLOTS];
+	std::vector<std::pair<std::string, std::string>> virt_cluster[SLOTS];
 
 	// reference to a mqtt communictor
 	std::shared_ptr<fast::MQTT_communicator> comm;

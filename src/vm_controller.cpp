@@ -11,10 +11,6 @@
 
 #include "poncos/poncos.hpp"
 
-#include <fast-lib/message/migfra/pci_id.hpp>
-#include <fast-lib/message/migfra/result.hpp>
-#include <fast-lib/message/migfra/task.hpp>
-
 #include <uuid/uuid.h>
 
 vm_controller::vm_controller(const std::shared_ptr<fast::MQTT_communicator> &_comm, const std::string &machine_filename,
@@ -143,7 +139,7 @@ void vm_controller::execute_command_internal(std::string command, std::string cg
 std::string vm_controller::generate_command(const jobT &job, std::string cg_name, const execute_config &config) {
 	std::string host_list;
 	for (auto virt_cluster_node : virt_cluster[config[0].second]) {
-		host_list += virt_cluster_node.second.name + ",";
+		host_list += virt_cluster_node.second + ",";
 	}
 	// remove last ','
 	host_list.pop_back();
@@ -151,12 +147,50 @@ std::string vm_controller::generate_command(const jobT &job, std::string cg_name
 	return "mpiexec -np " + std::to_string(job.nprocs) + " -hosts " + host_list + " " + job.command;
 }
 
+// generates start task for a single VM
+std::shared_ptr<fast::msg::migfra::Start> vm_controller::generate_start_task(size_t slot, vm_pool_elemT &free_vm) {
+	// load XML
+	std::fstream slot_file;
+	slot_file.open(slot_path + "/slot-" + std::to_string(slot) + ".xml");
+	std::stringstream slot_stream;
+	slot_stream << slot_file.rdbuf();
+	std::string slot_xml = slot_stream.str();
+
+
+	// modify XML
+	// -- vm name
+	std::regex name_regex("(<name>)(.+)(</name>)");
+	slot_xml = std::regex_replace(slot_xml, name_regex, "$1" + free_vm.name + "$3");
+	// -- disc
+	std::regex disk_regex("(.*<source file=\".*)(parastation-.*)(\.qcow2\"/>)");
+	slot_xml = std::regex_replace(slot_xml, disk_regex, "$1" + free_vm.name + "$3");
+
+	// -- uuid
+	uuid_t uuid;
+	uuid_generate(uuid);
+	char uuid_char_str[40];
+	uuid_unparse(uuid, uuid_char_str);
+	std::string uuid_str((const char *)uuid_char_str);
+	std::regex uuid_regex("[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}");
+	slot_xml = std::regex_replace(slot_xml, uuid_regex, uuid_str);
+	// -- mac
+	std::regex mac_regex("([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})");
+	slot_xml = std::regex_replace(slot_xml, mac_regex, free_vm.mac_addr);
+
+	// generate start task and return
+	std::vector<fast::msg::migfra::PCI_id> pci_ids;
+	pci_ids.push_back(fast::msg::migfra::PCI_id(0x15b3, 0x1004));
+
+	return std::make_shared<fast::msg::migfra::Start>(slot_xml, pci_ids, true);
+}
+
+
 template <typename T> void vm_controller::suspend_resume_virt_cluster(size_t slot) {
 	// request freeze
 	for (auto cluster_elem : virt_cluster[slot]) {
 		std::string topic = "fast/migfra/" + cluster_elem.first + "/task";
 
-		auto task = std::make_shared<T>(cluster_elem.second.name, true);
+		auto task = std::make_shared<T>(cluster_elem.second, true);
 
 		fast::msg::migfra::Task_container m;
 		m.tasks.push_back(task);
@@ -182,96 +216,64 @@ template <typename T> void vm_controller::suspend_resume_virt_cluster(size_t slo
 }
 
 void vm_controller::start_all_VMs() {
-	for (size_t slot = 0; slot < SLOTS; ++slot) {
-		std::vector<fast::msg::migfra::PCI_id> pci_ids;
-		pci_ids.push_back(fast::msg::migfra::PCI_id(0x15b3, 0x1004));
+	for (auto mach : machines()) {
+		std::string topic = "fast/migfra/" + mach + "/task";
 
-		std::vector<std::pair<std::string, vm_pool_elemT>> temp_virt_cluster;
-		for (auto mach = machines().begin(); mach != machines().end(); ++mach) {
-			std::string topic = "fast/migfra/" + *mach + "/task";
-
-			// load XML
-			std::fstream slot_file;
-			slot_file.open(slot_path + "/slot-" + std::to_string(slot) + ".xml");
-			std::stringstream slot_stream;
-			slot_stream << slot_file.rdbuf();
-			std::string slot_xml = slot_stream.str();
-
+		// create task container and add tasks per slot
+		fast::msg::migfra::Task_container m;
+		std::cout << "> Prepare task container for " << mach << std::endl;
+		for (size_t slot = 0; slot < SLOTS; ++slot) {
 			// get free vm
 			vm_pool_elemT free_vm = glob_vm_pool.front();
 			glob_vm_pool.pop_front();
 
-			// modify XML
-			// -- vm name
-			std::regex name_regex("(<name>)(.+)(</name>)");
-			slot_xml = std::regex_replace(slot_xml, name_regex, "$1" + free_vm.name + "$3");
-			// -- disc
-			std::regex disk_regex("(.*<source file=\".*)(parastation-.*)(\.qcow2\"/>)");
-			slot_xml = std::regex_replace(slot_xml, disk_regex, "$1" + free_vm.name + "$3");
-
-			// -- uuid
-			uuid_t uuid;
-			uuid_generate(uuid);
-			char uuid_char_str[40];
-			uuid_unparse(uuid, uuid_char_str);
-			std::string uuid_str((const char *)uuid_char_str);
-			std::regex uuid_regex("[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}");
-			slot_xml = std::regex_replace(slot_xml, uuid_regex, uuid_str);
-			// -- mac
-			std::regex mac_regex("([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})");
-			slot_xml = std::regex_replace(slot_xml, mac_regex, free_vm.mac_addr);
-
-			// send start task to mach
-			auto task = std::make_shared<fast::msg::migfra::Start>(slot_xml, pci_ids, true);
-			fast::msg::migfra::Task_container m;
+			auto task = generate_start_task(slot, free_vm);
+			virt_cluster[slot].push_back({mach, free_vm.name});
+			std::cout << "> add task to container " << free_vm.name << std::endl;
 			m.tasks.push_back(task);
-
-			std::cout << "sending message \n topic: " << topic << "\n Start " << free_vm.name << std::endl;
-
-			comm->send_message(m.to_string(), topic);
-
-			// add VM to result
-			temp_virt_cluster.emplace_back(*mach, free_vm);
 		}
 
-		fast::msg::migfra::Result_container response;
-		for (auto mach = machines().begin(); mach != machines().end(); ++mach) {
-			// wait for VMs to be started
-			std::string topic = "fast/migfra/" + *mach + "/result";
-			response.from_string(comm->get_message(topic));
+		comm->send_message(m.to_string(), topic);
+	}
 
-			assert(!response.results.front().status.compare("success"));
+	fast::msg::migfra::Result_container response;
+	for (auto mach : machines()) {
+		// wait for VMs to be started
+		std::string topic = "fast/migfra/" + mach + "/result";
+		response.from_string(comm->get_message(topic));
+
+		// check success for each result
+		for (auto result : response.results) {
+			assert(!result.status.compare("success"));
 		}
-
-		virt_cluster[slot] = temp_virt_cluster;
 	}
 }
 
 void vm_controller::stop_all_VMs() {
-	for (size_t slot = 0; slot < SLOTS; ++slot) {
+	for (size_t slot=0; slot<SLOTS; ++slot) {
 		// send stop request
-		for (auto cluster_elem : virt_cluster[slot]) {
-			auto task = std::make_shared<fast::msg::migfra::Stop>(cluster_elem.second.name, false, true, true);
+		for (auto cluster_node : virt_cluster[slot]) {
+			auto task = std::make_shared<fast::msg::migfra::Stop>(cluster_node.second, false, true, true);
 			fast::msg::migfra::Task_container m;
 			m.tasks.push_back(task);
 
-			std::string topic = "fast/migfra/" + cluster_elem.first + "/task";
+			std::string topic = "fast/migfra/" + cluster_node.first + "/task";
 			std::cout << "sending message \n topic: " << topic << "\n message:\n" << m.to_string() << std::endl;
 			comm->send_message(m.to_string(), topic);
 		}
 
-		// wait for completion
-		fast::msg::migfra::Result_container response;
-		for (auto cluster_elem : virt_cluster[slot]) {
-			std::string topic = "fast/migfra/" + cluster_elem.first + "/result";
+	}
+
+	// wait for completion
+	fast::msg::migfra::Result_container response;
+	for (size_t slot=0; slot<SLOTS; ++slot) {
+		for (auto cluster_node : virt_cluster[slot]) {
+			std::string topic = "fast/migfra/" + cluster_node.first + "/result";
 			response.from_string(comm->get_message(topic));
 			assert(!response.results.front().status.compare("success"));
-
-			// add VM to vm_pool
-			glob_vm_pool.push_back(cluster_elem.second);
 		}
 
-		// clear virtual cluster
+		// clear free node list
 		virt_cluster[slot].clear();
 	}
 }
