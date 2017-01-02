@@ -32,3 +32,6 @@ macbuild
 
 .sync-config.cson
 .DS_Store
+
+.floo
+.flooignore

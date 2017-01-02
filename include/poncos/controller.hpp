@@ -6,8 +6,11 @@
 
 #include "poncos/job.hpp"
 
+// disable the weak vtable warning as this is a pure virtual function, which has no implementation
+// so its vtable must be emitted in every compilation unit
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wweak-vtables"
+
 struct controllerT {
 	// entries in the vector are read as: (machine index in machinefiles, #slot)
 	using execute_config = std::vector<std::pair<size_t, size_t>>;

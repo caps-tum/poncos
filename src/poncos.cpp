@@ -29,11 +29,11 @@
 #include <fast-lib/mqtt_communicator.hpp>
 
 // COMMAND LINE PARAMETERS
-static std::string &server = *new std::string();
+static std::string server;
 static size_t port = 1883;
-static std::string &queue_filename = *new std::string();
-static std::string &machine_filename = *new std::string();
-static std::string &slot_path = *new std::string();
+static std::string queue_filename;
+static std::string machine_filename;
+static std::string slot_path;
 
 // marker if a slot is in use
 static bool co_config_in_use[SLOTS] = {false, false};
@@ -47,14 +47,17 @@ static size_t co_config_id[SLOTS] = {42, 42};
 // true if VM support is enabled
 static bool use_vms = false;
 
+static std::chrono::seconds wait_time(20);
+
 [[noreturn]] static void print_help(const char *argv) {
 	std::cout << argv << " supports the following flags:\n";
-	std::cout << "\t --vm \t\t\t Enable the usage of VMs. \t\t\t Required!\n";
+	std::cout << "\t --vm \t\t\t Enable the usage of VMs. \t\t\t Default: disabled\n";
 	std::cout << "\t --server \t\t URI of the MQTT broker. \t\t\t Required!\n";
 	std::cout << "\t --port \t\t Port of the MQTT broker. \t\t\t Default: 1883\n";
 	std::cout << "\t --queue \t\t Filename for the job queue. \t\t\t Required!\n";
 	std::cout << "\t --machine \t\t Filename containing node names. \t\t Required!\n";
 	std::cout << "\t --slot-path \t\t VM only: Path to XML slot specifications. \t Required!\n";
+	std::cout << "\t --wait \t\t Seconds to wait before starting distgen. \t Default: 20\n";
 
 	exit(0);
 }
@@ -110,6 +113,14 @@ static void parse_options(size_t argc, const char **argv) {
 				print_help(argv[0]);
 			}
 			slot_path = std::string(argv[i + 1]);
+			++i;
+			continue;
+		}
+		if (arg == "--wait") {
+			if (i + 1 >= argc) {
+				print_help(argv[0]);
+			}
+			wait_time = std::chrono::seconds(std::stoul(std::string(argv[i + 1])));
 			++i;
 			continue;
 		}
@@ -174,7 +185,6 @@ static void coschedule_queue(const job_queueT &job_queue, fast::MQTT_communicato
 		for (; new_slot < SLOTS; ++new_slot) {
 			if (!co_config_in_use[new_slot]) {
 				co_config_in_use[new_slot] = true;
-				// co_config_cgroup_name[i] = cg_name;
 
 				cgroup_controller::execute_config config;
 
@@ -192,7 +202,7 @@ static void coschedule_queue(const job_queueT &job_queue, fast::MQTT_communicato
 		assert(new_slot < SLOTS);
 
 		// for the initialization phase of the application to be completed
-		std::this_thread::sleep_for(std::chrono::seconds(20));
+		std::this_thread::sleep_for(wait_time);
 
 		// old config is used to run distgen
 		const size_t old_slot = (new_slot + 1) % SLOTS;
@@ -235,6 +245,51 @@ static void coschedule_queue(const job_queueT &job_queue, fast::MQTT_communicato
 	}
 	controller.done();
 }
+#if 0
+static void coschedule_queue_with_migration(const job_queueT &job_queue, fast::MQTT_communicator &comm,
+											controllerT &controller) {
+	// for all commands
+	for (auto job : job_queue.jobs) {
+		// wait until a job is finished <- controller TODO add next job size
+		// check if enough ressources are available for new job <- here
+		// -> check the size of the free lists
+		// no -> wait again
+		// yes -> continue
+
+		// select ressources
+		// -> pick one VM per machine ie use only ressources from one free list
+		// -> which one is not important
+		// map <host-id, std::array<2, std::pair<guest-name, free?>> <- controller
+		// -> return types: - std::vector<guest-name> to start-job
+		//                  - std::vector<std::pair<host-id, slot>> to find opossing VM
+
+		// start job on this VMs
+		// controller.execute()
+
+		// wait
+
+		// stop the opposing VM
+		// controller.stop_opposing(std::vector<std::pair<host-id, slot>>)
+
+		// start distgen
+		// -> store with job
+		// -> map <host, jobs>
+
+		// for all host-id of new job
+		// 	membw ok?
+		// 		yes -> next
+		// 		no -> mark it
+		// for all marked
+		// 	check if there is another host available
+		//		yes: save pair for swap
+		//		no: job must be suspended
+		// if yes for all: swap
+		// if no:
+		// 	wait for a job to finish
+		//	check again if membw is ok / swap
+	}
+}
+#endif
 
 int main(int argc, char const *argv[]) {
 	parse_options(static_cast<size_t>(argc), argv);
