@@ -102,8 +102,7 @@ class vm_controller : public controllerT {
 	std::unordered_map<size_t, size_t> id_to_slot;
 
 	// stores the VMs used in the two slots
-	// TODO was originalle an unordered map but the key was never used for a lookup
-	//      isn't first and second.name the same @spickartz?
+	// entries in the vector are read as: (host-name, guest-name)
 	std::vector<std::pair<std::string, std::string>> virt_cluster[SLOTS];
 
 	// reference to a mqtt communictor
