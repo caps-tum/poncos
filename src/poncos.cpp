@@ -26,6 +26,7 @@
 
 #include <fast-lib/message/agent/mmbwmon/reply.hpp>
 #include <fast-lib/message/agent/mmbwmon/request.hpp>
+#include <fast-lib/message/migfra/time_measurement.hpp>
 #include <fast-lib/mqtt_communicator.hpp>
 
 // COMMAND LINE PARAMETERS
@@ -316,11 +317,13 @@ int main(int argc, char const *argv[]) {
 	else
 		controller = new cgroup_controller(comm, machine_filename);
 
+	// Create Time_measurement instance
+	fast::msg::migfra::Time_measurement timers(true);
+
 	// start virtual clusters on all slots
-	clock_t begin = clock();
+	timers.tick("Start time");
 	controller->init();
-	clock_t end = clock();
-	auto start_time = static_cast<long>(double(end - begin) / double(CLOCKS_PER_SEC / 1000));
+	timers.tock("Start time");
 
 	// subscribe to the various topics
 	for (std::string mach : controller->machines()) {
@@ -330,17 +333,26 @@ int main(int argc, char const *argv[]) {
 
 	std::cout << "MQTT ready!\n\n";
 
-	auto runtime = time_measure<>::execute(coschedule_queue, job_queue, *comm, *controller);
-	std::cout << "total runtime: " << runtime << " ms" << std::endl;
+	timers.tick("Runtime");
+	coschedule_queue(job_queue, *comm, *controller);
+	timers.tock("Runtime");
 
-	begin = clock();
+	timers.tick("Stop time");
 	controller->dismantle();
-	end = clock();
-	auto stop_time = static_cast<long>(double(end - begin) / double(CLOCKS_PER_SEC / 1000));
+	timers.tock("Stop time");
 
-	const int maxwidth = static_cast<int>(std::to_string(std::max({start_time, runtime, stop_time})).length());
-	std::cout << "Start time: " << std::setw(maxwidth) << start_time << " ms" << std::endl;
-	std::cout << "Runtime   : " << std::setw(maxwidth) << runtime << " ms" << std::endl;
-	std::cout << "Stop time : " << std::setw(maxwidth) << stop_time << " ms" << std::endl;
-	std::cout << "Total time: " << std::setw(maxwidth) << start_time + runtime + stop_time << " ms" << std::endl;
+	double total_time = 0;
+	for (auto timer : timers.emit()) {
+		total_time += timer.second.as<double>();
+	}
+
+	// print timer
+	std::stringstream total_time_stream;
+	total_time_stream << std::fixed << total_time;
+	std::string total_time_str = total_time_stream.str();
+	const int maxwidth = static_cast<int>(total_time_str.length());
+	std::cout << "Start time: " << std::setw(maxwidth) << std::fixed << timers.emit()["Start time"].as<double>() << " s" << std::endl;
+	std::cout << "Runtime   : " << std::setw(maxwidth) << std::fixed << timers.emit()["Runtime"].as<double>() << " s" << std::endl;
+	std::cout << "Stop time : " << std::setw(maxwidth) << std::fixed << timers.emit()["Stop time"].as<double>() << " s" << std::endl;
+	std::cout << "Total time: " << std::setw(maxwidth) << total_time_str << " s" << std::endl;
 }
