@@ -23,7 +23,6 @@
 #include "poncos/poncos.hpp"
 
 #include <fast-lib/mqtt_communicator.hpp>
-#include <fast-lib/message/migfra/pci_id.hpp>
 #include <fast-lib/message/migfra/result.hpp>
 #include <fast-lib/message/migfra/task.hpp>
 
