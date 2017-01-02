@@ -162,7 +162,7 @@ std::shared_ptr<fast::msg::migfra::Start> vm_controller::generate_start_task(siz
 	std::regex name_regex("(<name>)(.+)(</name>)");
 	slot_xml = std::regex_replace(slot_xml, name_regex, "$1" + free_vm.name + "$3");
 	// -- disc
-	std::regex disk_regex("(.*<source file=\".*)(parastation-.*)(\.qcow2\"/>)");
+	std::regex disk_regex("(.*<source file=\".*)(parastation-.*)([.]qcow2\"/>)");
 	slot_xml = std::regex_replace(slot_xml, disk_regex, "$1" + free_vm.name + "$3");
 
 	// -- uuid
@@ -250,30 +250,41 @@ void vm_controller::start_all_VMs() {
 }
 
 void vm_controller::stop_all_VMs() {
+	std::unordered_map<std::string, std::vector<std::string>> cluster_layout;
+
+	// collect VMs per host
 	for (size_t slot=0; slot<SLOTS; ++slot) {
 		// send stop request
 		for (auto cluster_node : virt_cluster[slot]) {
-			auto task = std::make_shared<fast::msg::migfra::Stop>(cluster_node.second, false, true, true);
-			fast::msg::migfra::Task_container m;
-			m.tasks.push_back(task);
-
-			std::string topic = "fast/migfra/" + cluster_node.first + "/task";
-			std::cout << "sending message \n topic: " << topic << "\n message:\n" << m.to_string() << std::endl;
-			comm->send_message(m.to_string(), topic);
+			cluster_layout[cluster_node.first].push_back(cluster_node.second);
 		}
 
 	}
 
-	// wait for completion
-	fast::msg::migfra::Result_container response;
-	for (size_t slot=0; slot<SLOTS; ++slot) {
-		for (auto cluster_node : virt_cluster[slot]) {
-			std::string topic = "fast/migfra/" + cluster_node.first + "/result";
-			response.from_string(comm->get_message(topic));
-			assert(!response.results.front().status.compare("success"));
+	for (auto host_vms : cluster_layout) {
+		fast::msg::migfra::Task_container m;
+		for (auto vm : host_vms.second) {
+			auto task = std::make_shared<fast::msg::migfra::Stop>(vm, false, true, true);
+			m.tasks.push_back(task);
 		}
 
-		// clear free node list
+		std::string topic = "fast/migfra/" + host_vms.first + "/task";
+		std::cout << "sending message \n topic: " << topic << "\n message:\n" << m.to_string() << std::endl;
+		comm->send_message(m.to_string(), topic);
+	}
+
+	// wait for completion
+	fast::msg::migfra::Result_container response;
+	for (auto host_vms: cluster_layout) {
+		std::string topic = "fast/migfra/" + host_vms.first + "/result";
+		response.from_string(comm->get_message(topic));
+		for (auto result : response.results) {
+			assert(!result.status.compare("success"));
+		}
+	}
+
+	// clear virt_cluster
+	for (size_t slot=0; slot<SLOTS; ++slot) {
 		virt_cluster[slot].clear();
 	}
 }
