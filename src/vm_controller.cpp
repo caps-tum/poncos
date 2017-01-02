@@ -206,7 +206,7 @@ void vm_controller::start_all_VMs() {
 			std::regex name_regex("(<name>)(.+)(</name>)");
 			slot_xml = std::regex_replace(slot_xml, name_regex, "$1" + free_vm.name + "$3");
 			// -- disc
-			std::regex disk_regex("(.*<source file=\".*)(parastation-.*)(\.qcow2\"/>)");
+			std::regex disk_regex("(.*<source file=\".*)(parastation-.*)([.]qcow2\"/>)");
 			slot_xml = std::regex_replace(slot_xml, disk_regex, "$1" + free_vm.name + "$3");
 
 			// -- uuid
