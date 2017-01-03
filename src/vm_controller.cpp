@@ -43,22 +43,18 @@ void vm_controller::thaw(const size_t id) {
 	suspend_resume_virt_cluster<fast::msg::migfra::Resume>(config);
 }
 
+void vm_controller::stop_opposing(const size_t id) {
+	// TODO
+}
 std::string vm_controller::generate_command(const jobT &job, size_t /*counter*/, const execute_config &config) const {
 	std::string host_list;
-	for (const auto &vm : config) {
-		host_list += get_hostname_from_machinename(vm);
+	for (const auto &config_elem : config) {
+		host_list += vm_locations[config_elem.first][config_elem.second] + ",";
 	}
 	// remove last ','
 	host_list.pop_back();
 
 	return "mpiexec -np " + std::to_string(job.nprocs) + " -hosts " + host_list + " " + job.command;
-}
-
-std::string vm_controller::get_hostname_from_machinename(const std::pair<size_t, size_t> &config) const {
-	// TODO @spickartz? :)
-	// config->first ist der index in machines
-	// config->second ist der slot (also 0 oder 1)
-	return "";
 }
 
 // generates start task for a single VM
@@ -98,17 +94,11 @@ std::shared_ptr<fast::msg::migfra::Start> vm_controller::generate_start_task(siz
 }
 
 template <typename T> void vm_controller::suspend_resume_virt_cluster(const execute_config &config) {
-
-	size_t slot = config[0].second;
-	// TODO @spickartz? :)
-	// Change the code below to suspend/resume all VMs in the config?
-	// The slot variable above is just to sure it still compiles :)
-
 	// request OP
-	for (auto cluster_elem : virt_cluster[slot]) {
-		std::string topic = "fast/migfra/" + cluster_elem.first + "/task";
+	for (auto config_elem : config) {
+		std::string topic = "fast/migfra/" + machines[config_elem.first] + "/task";
 
-		auto task = std::make_shared<T>(cluster_elem.second, true);
+		auto task = std::make_shared<T>(vm_locations[config_elem.first][config_elem.second], true);
 
 		fast::msg::migfra::Task_container m;
 		m.tasks.push_back(task);
@@ -120,9 +110,9 @@ template <typename T> void vm_controller::suspend_resume_virt_cluster(const exec
 
 	// wait for results
 	fast::msg::migfra::Result_container response;
-	for (auto cluster_elem : virt_cluster[slot]) {
+	for (auto config_elem : config) {
 		// wait for VMs to be started
-		std::string topic = "fast/migfra/" + cluster_elem.first + "/result";
+		std::string topic = "fast/migfra/" + machines[config_elem.first] + "/result";
 		response.from_string(comm->get_message(topic));
 
 		int status = response.results.front().status.compare("success");
@@ -140,18 +130,26 @@ void vm_controller::start_all_VMs() {
 		// create task container and add tasks per slot
 		fast::msg::migfra::Task_container m;
 		std::cout << "> Prepare task container for " << mach << std::endl;
+		std::array<std::string, SLOTS> cur_slot_allocation;
 		for (size_t slot = 0; slot < SLOTS; ++slot) {
 			// get free vm
 			vm_pool_elemT free_vm = glob_vm_pool.front();
 			glob_vm_pool.pop_front();
 
+			// generate task
 			auto task = generate_start_task(slot, free_vm);
-			virt_cluster[slot].push_back({mach, free_vm.name});
+
+			// update vm_locations
+			cur_slot_allocation[slot] = free_vm.name;
 			std::cout << "> add task to container " << free_vm.name << std::endl;
 			m.tasks.push_back(task);
 		}
 
+		// send start request
 		comm->send_message(m.to_string(), topic);
+
+		// add slot allocation to vm_locations
+		vm_locations.push_back(cur_slot_allocation);
 	}
 
 	fast::msg::migfra::Result_container response;
@@ -168,40 +166,31 @@ void vm_controller::start_all_VMs() {
 }
 
 void vm_controller::stop_all_VMs() {
-	std::unordered_map<std::string, std::vector<std::string>> cluster_layout;
-
-	// collect VMs per host
-	for (size_t slot = 0; slot < SLOTS; ++slot) {
-		// send stop request
-		for (auto cluster_node : virt_cluster[slot]) {
-			cluster_layout[cluster_node.first].push_back(cluster_node.second);
-		}
-	}
-
-	for (auto host_vms : cluster_layout) {
+	// request stop of all VMs per host
+	size_t mach_id = 0;
+	for (auto mach : machines) {
+		// generate stop tasks
 		fast::msg::migfra::Task_container m;
-		for (auto vm : host_vms.second) {
-			auto task = std::make_shared<fast::msg::migfra::Stop>(vm, false, true, true);
+		for (size_t slot = 0; slot<SLOTS; ++slot) {
+			auto task = std::make_shared<fast::msg::migfra::Stop>(vm_locations[mach_id][slot], false, true, true);
 			m.tasks.push_back(task);
 		}
 
-		std::string topic = "fast/migfra/" + host_vms.first + "/task";
+		// send stop request
+		std::string topic = "fast/migfra/" + mach + "/task";
 		std::cout << "sending message \n topic: " << topic << "\n message:\n" << m.to_string() << std::endl;
 		comm->send_message(m.to_string(), topic);
+
+		mach_id++;
 	}
 
 	// wait for completion
 	fast::msg::migfra::Result_container response;
-	for (auto host_vms : cluster_layout) {
-		std::string topic = "fast/migfra/" + host_vms.first + "/result";
+	for (auto mach : machines) {
+		std::string topic = "fast/migfra/" + mach + "/result";
 		response.from_string(comm->get_message(topic));
 		for (auto result : response.results) {
 			assert(!result.status.compare("success"));
 		}
-	}
-
-	// clear virt_cluster
-	for (size_t slot = 0; slot < SLOTS; ++slot) {
-		virt_cluster[slot].clear();
 	}
 }

@@ -38,6 +38,8 @@ class vm_controller : public controllerT {
 	void freeze(const size_t id);
 	// thaws all VMs with the supplied id
 	void thaw(const size_t id);
+	// stop VMs opposing to the supplied id
+	void stop_opposing(const size_t id);
 
   private:
 	std::string generate_command(const jobT &job, size_t counter, const execute_config &config) const;
@@ -54,9 +56,10 @@ class vm_controller : public controllerT {
 	// path to the xml slot files
 	std::string slot_path;
 
-	// stores the VMs used in the two slots
-	// entries in the vector are read as: (host-name, guest-name)
-	std::vector<std::pair<std::string, std::string>> virt_cluster[SLOTS];
+	// stores the VMs used in the two slots per machine
+	// vector index -> machine index (see: machines)
+	// vector elem  -> array of VM names per slot
+	std::vector<std::array<std::string, SLOTS>> vm_locations;
 };
 
 #endif /* end of include guard: poncos_vm_controller */
