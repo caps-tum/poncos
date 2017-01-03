@@ -17,7 +17,7 @@ std::ostream &operator<<(std::ostream &os, const jobT &job);
 
 struct job_queueT : public fast::Serializable {
 	job_queueT() = default;
-	job_queueT(const std::string &yaml_str);
+	job_queueT(const std::string &queue_filename);
 	job_queueT(std::vector<jobT> jobs);
 
 	YAML::Node emit() const override;
@@ -30,8 +30,5 @@ struct job_queueT : public fast::Serializable {
 
 YAML_CONVERT_IMPL(jobT)
 YAML_CONVERT_IMPL(job_queueT)
-
-// reads a job_queueT from file
-job_queueT read_job_queue_from_file(std::string filename);
 
 #endif /* end of include guard: poncos_job */

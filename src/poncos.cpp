@@ -294,7 +294,7 @@ int main(int argc, char const *argv[]) {
 
 	std::cout << "Reading job queue " << queue_filename << " ...";
 	std::cout.flush();
-	job_queueT job_queue = read_job_queue_from_file(queue_filename);
+	job_queueT job_queue(queue_filename);
 	std::cout << " done!" << std::endl;
 
 	std::cout << "Job queue:\n";
