@@ -42,7 +42,7 @@ void controllerT::done() {
 void controllerT::wait_for_ressource(const size_t requested) {
 	if (!work_counter_lock.owns_lock()) work_counter_lock.lock();
 
-	worker_counter_cv.wait(work_counter_lock, [&] { return free_slots < requested; });
+	worker_counter_cv.wait(work_counter_lock, [&] { return free_slots >= requested; });
 }
 
 void controllerT::wait_for_completion_of(const size_t id) {
