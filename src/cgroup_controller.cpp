@@ -73,8 +73,8 @@ size_t cgroup_controller::execute(const jobT &job, const execute_config &config,
 	}
 	assert(work_counter_lock.owns_lock());
 
+	assert(config.size() >= free_slots);
 	free_slots -= config.size();
-	assert(free_slots >= 0);
 
 	std::string cg_name = cgroup_name_from_id(cmd_counter);
 	// cgroup is created by the bash script
