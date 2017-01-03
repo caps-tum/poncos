@@ -57,7 +57,7 @@ size_t vm_controller::execute(const jobT &job, const execute_config &config, std
 	}
 	assert(work_counter_lock.owns_lock());
 
-	assert(config.size() >= free_slots);
+	assert(config.size() <= free_slots);
 	free_slots -= config.size();
 
 	id_to_pool.emplace(cmd_counter, thread_pool.size());
