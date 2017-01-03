@@ -43,9 +43,29 @@ void vm_controller::thaw(const size_t id) {
 	suspend_resume_virt_cluster<fast::msg::migfra::Resume>(config);
 }
 
-void vm_controller::stop_opposing(const size_t id) {
-	// TODO
+void vm_controller::freeze_opposing(const size_t id) {
+	const execute_config opposing_config = generate_opposing_config(id);;
+
+	suspend_resume_virt_cluster<fast::msg::migfra::Suspend>(opposing_config);
 }
+
+void vm_controller::thaw_opposing(const size_t id) {
+	const execute_config &opposing_config = generate_opposing_config(id);;
+
+	suspend_resume_virt_cluster<fast::msg::migfra::Resume>(opposing_config);
+}
+controllerT::execute_config vm_controller::generate_opposing_config(const size_t id) const {
+	execute_config opposing_config;
+	const execute_config &config = id_to_config[id];
+
+	for (auto const &config_elem : config) {
+		// TODO: what abour more than two slots per host?
+		opposing_config.push_back({config_elem.first, (config_elem.second + 1) % SLOTS});
+	}
+
+	return opposing_config;
+}
+
 std::string vm_controller::generate_command(const jobT &job, size_t /*counter*/, const execute_config &config) const {
 	std::string host_list;
 	for (const auto &config_elem : config) {
