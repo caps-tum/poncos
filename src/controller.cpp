@@ -22,8 +22,7 @@ controllerT::controllerT(const std::shared_ptr<fast::MQTT_communicator> &_comm, 
 	}
 	std::cout << "==============\n";
 
-	std::fill_n(machine_usage.begin(), machines.size(),
-				std::array<size_t, 2>{{std::numeric_limits<size_t>::max(), std::numeric_limits<size_t>::max()}});
+	machine_usage.assign(machines.size(), std::array<size_t, 2>{{std::numeric_limits<size_t>::max(), std::numeric_limits<size_t>::max()}});
 
 	_total_available_slots = machines.size() * SLOTS;
 	free_slots = total_available_slots; // TODO split in two. one per slot
