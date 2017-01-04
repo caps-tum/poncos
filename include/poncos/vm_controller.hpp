@@ -42,6 +42,8 @@ class vm_controller : public controllerT {
 	void freeze_opposing(const size_t id);
 	// thaws VMs opposing to the supplied id
 	void thaw_opposing(const size_t id);
+	// swaps all slots from the given job with those in the new config
+	void swap_slots(const size_t id, const execute_config &new_config);
 
   private:
 	std::string generate_command(const jobT &job, size_t counter, const execute_config &config) const;
