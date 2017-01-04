@@ -173,7 +173,7 @@ static void command_done(const size_t config) {
 static void coschedule_queue(const job_queueT &job_queue, fast::MQTT_communicator &comm, controllerT &controller) {
 	// for all commands
 	for (auto job : job_queue.jobs) {
-		assert(job.nprocs == controller.machines.size());
+		assert(job.nprocs == controller.machines.size()*SLOT_SIZE);
 
 		controller.wait_for_ressource(job.nprocs);
 

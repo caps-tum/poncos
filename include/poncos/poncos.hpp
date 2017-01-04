@@ -30,6 +30,7 @@ struct sched_configT {
 	std::vector<unsigned char> mems;
 };
 
+constexpr size_t SLOT_SIZE = 8;
 constexpr size_t SLOTS = 2;
 extern const sched_configT co_configs[SLOTS];
 

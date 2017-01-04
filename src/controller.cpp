@@ -60,7 +60,7 @@ void controllerT::wait_for_ressource(const size_t requested) {
 		for (size_t i = 0; i < machine_usage.size(); ++i) {
 			for (size_t s = 0; s < SLOTS; ++s) {
 				if (machine_usage[i][s] == std::numeric_limits<size_t>::max()) {
-					++counter;
+					counter += SLOT_SIZE;
 					break;
 				}
 			}
