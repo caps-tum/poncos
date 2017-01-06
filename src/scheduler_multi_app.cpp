@@ -18,21 +18,24 @@ double multi_app_sched::membw_util_of_node(const size_t &idx) {
 	return total_membw_util;
 }
 
+
 std::vector<size_t> multi_app_sched::sort_machines_by_membw_util(void) {
-	std::vector<size_t> sorted_machines;
 
 	std::vector<double> total_mem_bws;
 	for (size_t idx = 0; idx < membw_util.size(); ++idx) {
 		total_mem_bws.emplace_back(membw_util_of_node(idx));
 	}
 
+
 	// retrieve sorted indices for memory bws
+	std::vector<size_t> sorted_machines(total_mem_bws.size());
 	std::iota(sorted_machines.begin(), sorted_machines.end(), 0);
 	std::sort(sorted_machines.begin(), sorted_machines.end(),
 			  [&total_mem_bws](size_t i1, size_t i2) { return total_mem_bws[i1] < total_mem_bws[i2]; });
 
 	return sorted_machines;
 }
+
 std::vector<size_t> multi_app_sched::check_membw(const controllerT::execute_config &config) const {
 	std::vector<size_t> marked_machines;
 	for (const auto &c : config) {
