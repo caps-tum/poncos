@@ -9,6 +9,30 @@
 #include "poncos/job.hpp"
 #include "poncos/poncos.hpp"
 
+double multi_app_sched::membw_util_of_node(const size_t &idx) {
+	double total_membw_util = 0;
+	for (size_t slot = 0; slot < SLOTS; ++slot) {
+		total_membw_util += membw_util[idx][slot];
+	}
+
+	return total_membw_util;
+}
+
+std::vector<size_t> multi_app_sched::sort_machines_by_membw_util(void) {
+	std::vector<size_t> sorted_machines;
+
+	std::vector<double> total_mem_bws;
+	for (size_t idx = 0; idx < membw_util.size(); ++idx) {
+		total_mem_bws.emplace_back(membw_util_of_node(idx));
+	}
+
+	// retrieve sorted indices for memory bws
+	std::iota(sorted_machines.begin(), sorted_machines.end(), 0);
+	std::sort(sorted_machines.begin(), sorted_machines.end(),
+			  [&total_mem_bws](size_t i1, size_t i2) { return total_mem_bws[i1] < total_mem_bws[i2]; });
+
+	return sorted_machines;
+}
 std::vector<size_t> multi_app_sched::check_membw(const controllerT::execute_config &config) const {
 	std::vector<size_t> marked_machines;
 	for (const auto &c : config) {
@@ -25,6 +49,33 @@ std::vector<size_t> multi_app_sched::check_membw(const controllerT::execute_conf
 		}
 	}
 	return marked_machines;
+}
+
+controllerT::execute_config multi_app_sched::generate_optimal_config(std::vector<size_t> marked_machines, std::vector<size_t> swap_candidates) const {
+	controllerT::execute_config new_config;
+	//TODO
+	return new_config;
+}
+
+controllerT::execute_config multi_app_sched::find_new_config(std::vector<size_t> marked_machines) {
+	controllerT::execute_config new_config;
+
+	// determine swap candidates
+	std::vector<size_t> swap_candidates = sort_machines_by_membw_util();
+
+	// check if new config is possible
+	double total_membw_util = 0;
+	for (size_t idx = 0; idx < marked_machines.size(); ++idx) {
+		total_membw_util += membw_util_of_node(marked_machines[idx]);
+		total_membw_util += membw_util_of_node(swap_candidates[idx]);
+	}
+
+	// are we able to find a new config?
+	if (total_membw_util < PER_MACHINE_TH*marked_machines.size()*2) {
+		new_config = generate_optimal_config(marked_machines, swap_candidates);
+	}
+
+	return new_config;
 }
 
 // called after a command was completed
@@ -101,15 +152,11 @@ void multi_app_sched::schedule(const job_queueT &job_queue, fast::MQTT_communica
 			if (marked_machines.empty()) break;
 
 			if (controller.update_supported()) {
-				// TODO think about migration the marked machines
-				// for all marked
-				// 	check if there is another host available
-				//		yes: save pair for swap
-				//		no: job must be suspended
-				// if yes for all: swap
-				//                 assert(check_membw(config).size() == 0);
-				//                 break;
-				// if no:
+				controllerT::execute_config new_config = find_new_config(marked_machines);
+
+				if (!new_config.empty()) {
+					controller.update_config(job_id, new_config);
+				}
 			}
 
 			if (!frozen) {
