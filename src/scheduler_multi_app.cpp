@@ -18,22 +18,22 @@ double multi_app_sched::membw_util_of_node(const size_t &idx) {
 	return total_membw_util;
 }
 
-
-std::vector<size_t> multi_app_sched::sort_machines_by_membw_util(void) {
+std::vector<size_t> multi_app_sched::sort_machines_by_membw_util(std::vector<size_t> machine_idxs, bool reverse) {
 
 	std::vector<double> total_mem_bws;
 	for (size_t idx = 0; idx < membw_util.size(); ++idx) {
 		total_mem_bws.emplace_back(membw_util_of_node(idx));
 	}
 
+	std::sort(machine_idxs.begin(), machine_idxs.end(), [&total_mem_bws, &reverse](size_t i1, size_t i2) {
+		if (reverse) {
+			return total_mem_bws[i1] > total_mem_bws[i2];
+		} else {
+			return total_mem_bws[i1] < total_mem_bws[i2];
+		}
+	});
 
-	// retrieve sorted indices for memory bws
-	std::vector<size_t> sorted_machines(total_mem_bws.size());
-	std::iota(sorted_machines.begin(), sorted_machines.end(), 0);
-	std::sort(sorted_machines.begin(), sorted_machines.end(),
-			  [&total_mem_bws](size_t i1, size_t i2) { return total_mem_bws[i1] < total_mem_bws[i2]; });
-
-	return sorted_machines;
+	return machine_idxs;
 }
 
 std::vector<size_t> multi_app_sched::check_membw(const controllerT::execute_config &config) const {
@@ -64,7 +64,9 @@ controllerT::execute_config multi_app_sched::find_new_config(std::vector<size_t>
 	controllerT::execute_config new_config;
 
 	// determine swap candidates
-	std::vector<size_t> swap_candidates = sort_machines_by_membw_util();
+	std::vector<size_t> swap_candidates;
+	std::iota(swap_candidates.begin(), swap_candidates.end(), 0);
+	swap_candidates = sort_machines_by_membw_util(swap_candidates, false);
 
 	// check if new config is possible
 	double total_membw_util = 0;
@@ -75,7 +77,7 @@ controllerT::execute_config multi_app_sched::find_new_config(std::vector<size_t>
 
 	// are we able to find a new config?
 	if (total_membw_util < PER_MACHINE_TH*marked_machines.size()*2) {
-		new_config = generate_optimal_config(marked_machines, swap_candidates);
+		new_config = generate_optimal_config(sort_machines_by_membw_util(marked_machines, true), swap_candidates);
 	}
 
 	return new_config;
