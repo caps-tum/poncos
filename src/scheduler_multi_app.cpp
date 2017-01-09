@@ -9,7 +9,7 @@
 #include "poncos/job.hpp"
 #include "poncos/poncos.hpp"
 
-double multi_app_sched::membw_util_of_node(const size_t &idx) {
+double multi_app_sched::membw_util_of_node(const size_t &idx) const {
 	double total_membw_util = 0;
 	for (size_t slot = 0; slot < SLOTS; ++slot) {
 		total_membw_util += membw_util[idx][slot];
@@ -18,20 +18,26 @@ double multi_app_sched::membw_util_of_node(const size_t &idx) {
 	return total_membw_util;
 }
 
-std::vector<size_t> multi_app_sched::sort_machines_by_membw_util(std::vector<size_t> machine_idxs, bool reverse) {
+std::vector<size_t> multi_app_sched::sort_machines_by_membw_util(const std::vector<size_t> &machine_idxs,
+																 const bool reverse) const {
+	assert(machine_idxs.size() <= membw_util.size());
 
-	std::vector<double> total_mem_bws;
+	// determine membw_util per node
+	std::vector<double> total_membw_util;
 	for (size_t idx = 0; idx < membw_util.size(); ++idx) {
-		total_mem_bws.emplace_back(membw_util_of_node(idx));
+		total_membw_util.emplace_back(membw_util_of_node(idx));
 	}
 
-	std::sort(machine_idxs.begin(), machine_idxs.end(), [&total_mem_bws, &reverse](size_t i1, size_t i2) {
-		if (reverse) {
-			return total_mem_bws[i1] > total_mem_bws[i2];
-		} else {
-			return total_mem_bws[i1] < total_mem_bws[i2];
-		}
-	});
+	// sort machine indices in accordance with the nodes' total_membw_util
+	std::vector<size_t> sorted_machine_idxs = machine_idxs;
+	std::sort(sorted_machine_idxs.begin(), sorted_machine_idxs.end(),
+			  [&total_membw_util, &reverse](size_t i1, size_t i2) {
+				  if (reverse) {
+					  return total_membw_util[i1] > total_membw_util[i2];
+				  } else {
+					  return total_membw_util[i1] < total_membw_util[i2];
+				  }
+			  });
 
 	return machine_idxs;
 }
@@ -47,28 +53,68 @@ std::vector<size_t> multi_app_sched::check_membw(const controllerT::execute_conf
 
 		// 	membw ok?
 		// 		no -> mark it
-		if (membw > 0.9) {
+		if (membw > PER_MACHINE_TH) {
 			marked_machines.push_back(c.first);
 		}
 	}
 	return marked_machines;
 }
 
-controllerT::execute_config multi_app_sched::generate_optimal_config(std::vector<size_t> marked_machines, std::vector<size_t> swap_candidates) const {
+controllerT::execute_config multi_app_sched::generate_new_config(const controllerT::execute_config old_config,
+																 const std::vector<size_t> marked_machines,
+																 const std::vector<size_t> swap_candidates) {
+	// are there any swap candidates?
+	if (swap_candidates.empty()) {
+		return {};
+	}
+	assert(marked_machines.size() == swap_candidates.size());
+
+	std::vector<size_t> marked_machines_sorted = sort_machines_by_membw_util(marked_machines, true);
+
+	// determine sorted swap config
+	controllerT::execute_config new_config_sorted;
+	for (size_t idx = 0; idx < marked_machines.size(); ++idx) {
+		const size_t old_mach = marked_machines_sorted[idx];
+		const size_t new_mach = swap_candidates[idx];
+		const auto old_slot_it = std::find_if(old_config.begin(), old_config.end(),
+											  [&old_mach](auto &config_elem) { return config_elem.first == old_mach; });
+		const size_t old_slot = old_slot_it->second;
+		std::array<double, SLOTS>::iterator new_slot_it;
+		// determine 'optimal' slot on new_mach
+		// -> minimize membw_util variances of old_mach and new_mach
+		if (membw_util[old_mach][old_slot] < membw_util[old_mach][(old_slot + 1) % SLOTS]) { // TODO: what about more than 2 SLOTS?
+			new_slot_it = std::max_element(std::begin(membw_util[new_mach]), std::end(membw_util[new_mach]));
+		} else {
+			new_slot_it = std::min_element(membw_util[new_mach].begin(), membw_util[new_mach].end());
+		}
+
+		new_config_sorted.emplace_back(new_mach, std::distance(std::begin(membw_util[new_mach]), new_slot_it));
+	}
+	assert(new_config_sorted.size() == marked_machines.size());
+
+	// sort swap-config in accordance with order of marked_machines
 	controllerT::execute_config new_config;
-	//TODO
+	for (auto &config_elem : old_config) {
+		auto machine_pos = std::find(marked_machines_sorted.begin(), marked_machines_sorted.end(), config_elem.first);
+		if (machine_pos != marked_machines_sorted.end()) {
+			new_config.emplace_back(new_config_sorted[machine_pos - marked_machines_sorted.begin()]);
+		} else {
+			new_config.emplace_back(config_elem);
+		}
+	}
+
 	return new_config;
 }
 
-controllerT::execute_config multi_app_sched::find_new_config(std::vector<size_t> marked_machines) {
-	controllerT::execute_config new_config;
-
+std::vector<size_t> multi_app_sched::find_swap_candidates(const std::vector<size_t> &marked_machines) const {
 	// determine swap candidates
-	std::vector<size_t> swap_candidates;
+	// -> sorted list of machine indices in accordance with membw_util
+	std::vector<size_t> swap_candidates(membw_util.size());
 	std::iota(swap_candidates.begin(), swap_candidates.end(), 0);
 	swap_candidates = sort_machines_by_membw_util(swap_candidates, false);
+	swap_candidates.resize(marked_machines.size());
 
-	// check if new config is possible
+	// calculate total membw_util for all nodes with the current config
 	double total_membw_util = 0;
 	for (size_t idx = 0; idx < marked_machines.size(); ++idx) {
 		total_membw_util += membw_util_of_node(marked_machines[idx]);
@@ -76,11 +122,13 @@ controllerT::execute_config multi_app_sched::find_new_config(std::vector<size_t>
 	}
 
 	// are we able to find a new config?
-	if (total_membw_util < PER_MACHINE_TH*marked_machines.size()*2) {
-		new_config = generate_optimal_config(sort_machines_by_membw_util(marked_machines, true), swap_candidates);
+	// -> if the total sum of all membw_utils exceeds the some of all
+	//    thresholds, a new config won't improve the situation
+	if (total_membw_util < PER_MACHINE_TH * marked_machines.size() * 2) {
+		return swap_candidates;
+	} else {
+		return {};
 	}
-
-	return new_config;
 }
 
 // called after a command was completed
@@ -151,16 +199,19 @@ void multi_app_sched::schedule(const job_queueT &job_queue, fast::MQTT_communica
 
 		while (true) {
 			// for all host-id of new job
-			auto marked_machines = check_membw(config);
+			const auto marked_machines = check_membw(config);
 
 			// everything fine?
 			if (marked_machines.empty()) break;
 
 			if (controller.update_supported()) {
-				controllerT::execute_config new_config = find_new_config(marked_machines);
+				const std::vector<size_t> swap_candidates = find_swap_candidates(marked_machines);
+				controllerT::execute_config new_config =
+					generate_new_config(controller.id_to_config[job_id], marked_machines, swap_candidates);
 
 				if (!new_config.empty()) {
 					controller.update_config(job_id, new_config);
+					break;
 				}
 			}
 
