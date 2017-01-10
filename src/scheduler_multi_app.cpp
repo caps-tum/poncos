@@ -246,6 +246,9 @@ void multi_app_sched::schedule(const job_queueT &job_queue, fast::MQTT_communica
 				assert(new_config.size() == old_config.size());
 
 				if (!new_config.empty()) {
+					// we need to thaw the job to be able to trigger the S/R protocol
+					if (frozen) controller.thaw(job_id);
+
 					controller.update_config(job_id, new_config);
 					break;
 				}
