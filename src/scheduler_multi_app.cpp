@@ -15,7 +15,7 @@ std::vector<size_t> multi_app_sched::check_membw(const controllerT::execute_conf
 		// get membw
 		double membw = 0.0;
 		for (size_t s = 0; s < SLOTS; ++s) {
-			membw += 1.0 - membw_util[c.first][s];
+			membw += membw_util[c.first][s];
 		}
 
 		// 	membw ok?
@@ -85,7 +85,7 @@ void multi_app_sched::schedule(const job_queueT &job_queue, fast::MQTT_communica
 		for (size_t i = 0; i < distgen_res.size(); ++i) {
 			const auto &c = config[i];
 			assert(membw_util[c.first][c.second] == 0.0);
-			membw_util[c.first][c.second] = distgen_res[i];
+			membw_util[c.first][c.second] = 1 - distgen_res[i];
 		}
 
 		// restart opposing VM
