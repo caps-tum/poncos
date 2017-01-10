@@ -3,11 +3,14 @@
   <uuid>8b9d292a-afe6-11e6-bf1d-002590926adc</uuid>
   <memory unit="KiB">20971520</memory>
   <currentMemory unit="KiB">20971520</currentMemory>
+  <memtune>
+    <hard_limit unit='KiB'>35651584</hard_limit>
+  </memtune>
   <vcpu placement="static">8</vcpu>
   <cputune><vcpupin vcpu="0" cpuset="4"/><vcpupin vcpu="1" cpuset="5"/><vcpupin vcpu="2" cpuset="6"/><vcpupin vcpu="3" cpuset="7"/><vcpupin vcpu="4" cpuset="12"/><vcpupin vcpu="5" cpuset="13"/><vcpupin vcpu="6" cpuset="14"/><vcpupin vcpu="7" cpuset="15"/></cputune>
 
   <os>
-    <type arch="x86_64" machine="pc-i440fx-2.4">hvm</type>
+    <type arch="x86_64" machine="pc-i440fx-2.6">hvm</type>
     <boot dev="hd"/>
   </os>
   <features>
