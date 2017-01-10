@@ -109,6 +109,9 @@ controllerT::execute_config multi_app_sched::generate_new_config(const controlle
 		} else {
 			new_slot_it = std::min_element(membw_util[new_mach].begin(), membw_util[new_mach].end());
 		}
+		const size_t new_slot = std::distance(membw_util[new_mach].begin(), new_slot_it);
+		assert(membw_util[old_mach][(old_slot + 1) % SLOTS] + membw_util[new_mach][new_slot] < PER_MACHINE_TH);
+		assert(membw_util[new_mach][(new_slot + 1) % SLOTS] + membw_util[old_mach][old_slot] < PER_MACHINE_TH);
 
 		new_config_sorted.emplace_back(new_mach, std::distance(membw_util[new_mach].begin(), new_slot_it));
 	}
