@@ -5,12 +5,14 @@
 
 struct jobT : public fast::Serializable {
 	jobT() = default;
-	jobT(size_t nprocs, std::string command);
+	jobT(size_t nprocs, size_t threads_per_proc, std::string command);
 
 	YAML::Node emit() const override;
 	void load(const YAML::Node &node) override;
+	size_t req_cpus(void){return nprocs * threads_per_proc;};
 
 	size_t nprocs;
+	size_t threads_per_proc;
 	std::string command;
 };
 std::ostream &operator<<(std::ostream &os, const jobT &job);

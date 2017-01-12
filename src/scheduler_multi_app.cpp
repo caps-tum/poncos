@@ -200,8 +200,8 @@ void multi_app_sched::schedule(const job_queueT &job_queue, fast::MQTT_communica
 
 	// for all commands
 	for (auto job : job_queue.jobs) {
-		assert(job.nprocs <= controller.machines.size() * SLOT_SIZE);
-		controller.wait_for_ressource(job.nprocs);
+		assert(job.req_cpus() <= controller.machines.size() * SLOT_SIZE);
+		controller.wait_for_ressource(job.req_cpus());
 
 		// select ressources
 		controllerT::execute_config config;
@@ -219,10 +219,10 @@ void multi_app_sched::schedule(const job_queueT &job_queue, fast::MQTT_communica
 					break;
 				}
 			}
-			if (config.size() * SLOT_SIZE == job.nprocs) break;
+			if (config.size() * SLOT_SIZE == job.req_cpus()) break;
 		}
 
-		assert(config.size() * SLOT_SIZE == job.nprocs);
+		assert(config.size() * SLOT_SIZE == job.req_cpus());
 
 		// start job
 		auto job_id = controller.execute(job, config, [&](const size_t config) { command_done(config, controller); });

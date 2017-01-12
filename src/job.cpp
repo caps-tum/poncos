@@ -2,17 +2,21 @@
 
 #include <fstream>
 
-jobT::jobT(size_t nprocs, std::string command) : nprocs(nprocs), command(std::move(command)) {}
+jobT::jobT(size_t nprocs, size_t threads_per_proc, std::string command)
+	: nprocs(nprocs), threads_per_proc(threads_per_proc), command(std::move(command)) {
+}
 
 YAML::Node jobT::emit() const {
 	YAML::Node node;
 	node["nprocs"] = nprocs;
+	node["threads-per-proc"] = threads_per_proc;
 	node["cmd"] = command;
 	return node;
 }
 
 void jobT::load(const YAML::Node &node) {
 	fast::load(nprocs, node["nprocs"]);
+	fast::load(threads_per_proc, node["threads-per-proc"]);
 	fast::load(command, node["cmd"]);
 }
 

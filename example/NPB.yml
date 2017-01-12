@@ -1,7 +1,10 @@
 job-list:
         - nprocs: 16
+          threads-per-proc: 1
           cmd: "/home/pickartz/work/benchmarks/NPB/NPB3.3.1/NPB3.3-MPI/bin/cg.C.16"
         - nprocs: 16
+          threads-per-proc: 1
           cmd: "/home/pickartz/work/benchmarks/NPB/NPB3.3.1/NPB3.3-MPI/bin/cg.C.16"
         - nprocs: 16
+          threads-per-proc: 1
           cmd: "/home/pickartz/work/benchmarks/NPB/NPB3.3.1/NPB3.3-MPI/bin/ep.C.16"
