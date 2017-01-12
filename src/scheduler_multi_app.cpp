@@ -10,6 +10,10 @@
 #include "poncos/job.hpp"
 #include "poncos/poncos.hpp"
 
+// inititalize fast-lib log
+FASTLIB_LOG_INIT(scheduler_multi_app_log, "multi-app scheduler")
+FASTLIB_LOG_SET_LEVEL_GLOBAL(scheduler_multi_app_log, trace);
+
 // per machine threshold for the membw utilization
 constexpr double PER_MACHINE_TH = 0.9;
 
@@ -226,7 +230,7 @@ void multi_app_sched::schedule(const job_queueT &job_queue, fast::MQTT_communica
 
 		// start job
 		auto job_id = controller.execute(job, config, [&](const size_t config) { command_done(config, controller); });
-		std::cout << ">> \t starting '" << job << std::endl;
+		FASTLIB_LOG(scheduler_multi_app_log, trace) << ">> \t starting '" << job;
 
 		// for the initialization phase of the application to be completed
 		std::this_thread::sleep_for(wait_time);

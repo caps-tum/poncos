@@ -3,6 +3,10 @@
 #include <fast-lib/message/agent/mmbwmon/reply.hpp>
 #include <fast-lib/message/agent/mmbwmon/request.hpp>
 
+// inititalize fast-lib log
+FASTLIB_LOG_INIT(scheduler_log, "scheduler")
+FASTLIB_LOG_SET_LEVEL_GLOBAL(scheduler_log, trace);
+
 schedulerT::~schedulerT() = default;
 
 std::vector<double> schedulerT::run_distgen(fast::MQTT_communicator &comm, const std::vector<std::string> &machines,
@@ -23,7 +27,7 @@ std::vector<double> schedulerT::run_distgen(fast::MQTT_communicator &comm, const
 			}
 
 			const std::string topic = "fast/agent/" + machines[c.first] + "/mmbwmon/request";
-			// std::cout << "sending message \n topic: " << topic << "\n message:\n" << m.to_string() << std::endl;
+			FASTLIB_LOG(scheduler_log, debug) << "sending message \n topic: " << topic << "\n message:\n" << m.to_string();
 			comm.send_message(m.to_string(), topic);
 		}
 	}
@@ -36,9 +40,9 @@ std::vector<double> schedulerT::run_distgen(fast::MQTT_communicator &comm, const
 		for (const auto &c : config) {
 			fast::msg::agent::mmbwmon::reply m;
 			const std::string topic = "fast/agent/" + machines[c.first] + "/mmbwmon/response";
-			// std::cout << "waiting on topic: " << topic << " ... " << std::flush;
+			FASTLIB_LOG(scheduler_log, debug) << "Waiting on topic: " << topic << " ... ";
 			m.from_string(comm.get_message(topic));
-			// std::cout << "done\n";
+			FASTLIB_LOG(scheduler_log, debug) << "Message received!";
 
 			ret.push_back(m.result);
 		}

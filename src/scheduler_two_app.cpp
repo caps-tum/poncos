@@ -10,6 +10,10 @@
 #include "poncos/job.hpp"
 #include "poncos/poncos.hpp"
 
+// inititalize fast-lib log
+FASTLIB_LOG_INIT(scheduler_two_app_log, "two-app scheduler")
+FASTLIB_LOG_SET_LEVEL_GLOBAL(scheduler_two_app_log, trace);
+
 // called after a command was completed
 void two_app_sched::command_done(const size_t config, controllerT & /*controller*/) {
 	co_config_in_use[config] = false;
@@ -40,7 +44,7 @@ void two_app_sched::schedule(const job_queueT &job_queue, fast::MQTT_communicato
 				job_id =
 					controller.execute(job, config, [&](const size_t config) { command_done(config, controller); });
 
-				std::cout << ">> \t starting '" << job << "' at configuration " << new_slot << std::endl;
+				FASTLIB_LOG(scheduler_two_app_log, trace) << ">> \t starting '" << job << "' at configuration " << new_slot;
 
 				break;
 			}
@@ -52,39 +56,39 @@ void two_app_sched::schedule(const job_queueT &job_queue, fast::MQTT_communicato
 
 		// check if two are running
 		if (co_config_in_use[0] && co_config_in_use[1]) {
-			// std::cout << "0: freezing old" << std::endl;
+			FASTLIB_LOG(scheduler_two_app_log, debug) << "0: freezing old";
 			controller.freeze_opposing(job_id);
 		}
 
 		// measure distgen result
-		std::cout << ">> \t Running distgend" << std::endl;
+		FASTLIB_LOG(scheduler_two_app_log, trace) << ">> \t Running distgend";
 		auto temp = run_distgen(comm, controller.machines, controller.generate_opposing_config(job_id));
 		co_config_distgend[new_slot] = *std::max_element(temp.begin(), temp.end());
 
-		std::cout << ">> \t Result for command '" << job << "' is: " << 1 - co_config_distgend[new_slot] << std::endl;
+		FASTLIB_LOG(scheduler_two_app_log, trace) << ">> \t Result for command '" << job << "' is: " << 1 - co_config_distgend[new_slot];
 
 		if (co_config_in_use[0] && co_config_in_use[1]) {
-			// std::cout << "0: thaw old" << std::endl;
+			FASTLIB_LOG(scheduler_two_app_log, debug) << "0: thaw old";
 			controller.thaw_opposing(job_id);
 
-			std::cout << ">> \t Estimating total usage of "
+			FASTLIB_LOG(scheduler_two_app_log, trace) << ">> \t Estimating total usage of "
 					  << (1 - co_config_distgend[0]) + (1 - co_config_distgend[1]);
 
 			if ((1 - co_config_distgend[0]) + (1 - co_config_distgend[1]) > 0.9) {
-				std::cout << " -> we will run one" << std::endl;
-				// std::cout << "0: freezing new" << std::endl;
+				FASTLIB_LOG(scheduler_two_app_log, trace) << " -> we will run one";
+				FASTLIB_LOG(scheduler_two_app_log, debug) << "0: freezing new";
 				controller.freeze(job_id);
 
 				controller.wait_for_ressource(job.nprocs);
 
-				// std::cout << "0: thaw new" << std::endl;
+				FASTLIB_LOG(scheduler_two_app_log, debug) << "0: thaw new";
 				controller.thaw(job_id);
 			} else {
-				std::cout << " -> we will run both applications" << std::endl;
+				FASTLIB_LOG(scheduler_two_app_log, trace) << " -> we will run both applications";
 			}
 
 		} else {
-			std::cout << ">> \t Just one config in use ATM" << std::endl;
+			FASTLIB_LOG(scheduler_two_app_log, trace) << ">> \t Just one config in use ATM";
 		}
 	}
 	controller.done();
