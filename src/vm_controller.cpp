@@ -14,6 +14,10 @@
 
 #include <uuid/uuid.h>
 
+// inititalize fast-lib log
+FASTLIB_LOG_INIT(vm_controller_log, "vm-controller")
+FASTLIB_LOG_SET_LEVEL_GLOBAL(vm_controller_log, trace);
+
 vm_controller::vm_controller(const std::shared_ptr<fast::MQTT_communicator> &_comm, const std::string &machine_filename,
 							 std::string _slot_path)
 	: controllerT(_comm, machine_filename), slot_path(std::move(_slot_path)) {
@@ -86,7 +90,7 @@ void vm_controller::update_config(const size_t id, const execute_config &new_con
 		fast::msg::migfra::Task_container m;
 		m.tasks.push_back(task);
 
-		std::cout << "sending message \n topic: " << topic << "\n message:\n" << m.to_string() << std::endl;
+		FASTLIB_LOG(vm_controller_log, debug) << "sending message \n topic: " << topic << "\n message:\n" << m.to_string();
 
 		comm->send_message(m.to_string(), topic);
 	}
@@ -174,7 +178,7 @@ template <typename T> void vm_controller::suspend_resume_virt_cluster(const exec
 		fast::msg::migfra::Task_container m;
 		m.tasks.push_back(task);
 
-		std::cout << "sending message \n topic: " << topic << "\n message:\n" << m.to_string() << std::endl;
+		FASTLIB_LOG(vm_controller_log, debug) << "sending message \n topic: " << topic << "\n message:\n" << m.to_string();
 
 		comm->send_message(m.to_string(), topic);
 	}
@@ -200,7 +204,6 @@ void vm_controller::start_all_VMs() {
 
 		// create task container and add tasks per slot
 		fast::msg::migfra::Task_container m;
-		std::cout << "> Prepare task container for " << mach << std::endl;
 		std::array<std::string, SLOTS> cur_slot_allocation;
 		for (size_t slot = 0; slot < SLOTS; ++slot) {
 			// get free vm
@@ -212,7 +215,6 @@ void vm_controller::start_all_VMs() {
 
 			// update vm_locations
 			cur_slot_allocation[slot] = free_vm.name;
-			std::cout << "> add task to container " << free_vm.name << std::endl;
 			m.tasks.push_back(task);
 		}
 
@@ -249,7 +251,7 @@ void vm_controller::stop_all_VMs() {
 
 		// send stop request
 		std::string topic = "fast/migfra/" + mach + "/task";
-		std::cout << "sending message \n topic: " << topic << "\n message:\n" << m.to_string() << std::endl;
+		FASTLIB_LOG(vm_controller_log, debug) << "sending message \n topic: " << topic << "\n message:\n" << m.to_string();
 		comm->send_message(m.to_string(), topic);
 
 		mach_id++;

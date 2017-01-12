@@ -6,22 +6,24 @@
 
 #include "poncos/poncos.hpp"
 
+// inititalize fast-lib log
+FASTLIB_LOG_INIT(controller_log, "controller")
+FASTLIB_LOG_SET_LEVEL_GLOBAL(controller_log, trace);
+
 controllerT::controllerT(std::shared_ptr<fast::MQTT_communicator> _comm, const std::string &machine_filename)
 	: machines(_machines), available_slots(_available_slots), machine_usage(_machine_usage),
 	  id_to_config(_id_to_config), cmd_counter(0), work_counter_lock(worker_counter_mutex), comm(std::move(_comm)) {
 
 	// fill the machine file
-	std::cout << "Reading machine file " << machine_filename << " ...";
-	std::cout.flush();
+	FASTLIB_LOG(controller_log, trace) << "Reading machine file " << machine_filename << " ...";
 	read_file(machine_filename, _machines);
-	std::cout << " done!" << std::endl;
 
-	std::cout << "Machine file:\n";
-	std::cout << "==============\n";
+	FASTLIB_LOG(controller_log, trace) << "Machine file:";
+	FASTLIB_LOG(controller_log, trace) << "==============";
 	for (const std::string &c : _machines) {
-		std::cout << c << "\n";
+		FASTLIB_LOG(controller_log, trace) << c;
 	}
-	std::cout << "==============\n";
+	FASTLIB_LOG(controller_log, trace) << "==============";
 
 	_machine_usage.assign(_machines.size(), std::array<size_t, 2>{{std::numeric_limits<size_t>::max(),
 																   std::numeric_limits<size_t>::max()}});
@@ -169,7 +171,7 @@ void controllerT::execute_command_internal(std::string command, size_t counter, 
 	assert(temp != -1);
 
 	// we are done
-	std::cout << ">> \t '" << command << "' completed at configuration " << config[0].second << std::endl;
+	FASTLIB_LOG(controller_log, trace) << ">> \t '" << command << "' completed at configuration " << config[0].second;
 
 	std::lock_guard<std::mutex> work_counter_lock(worker_counter_mutex);
 
