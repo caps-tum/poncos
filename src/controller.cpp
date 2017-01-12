@@ -8,22 +8,22 @@
 
 // inititalize fast-lib log
 FASTLIB_LOG_INIT(controller_log, "controller")
-FASTLIB_LOG_SET_LEVEL_GLOBAL(controller_log, trace);
+FASTLIB_LOG_SET_LEVEL_GLOBAL(controller_log, info);
 
 controllerT::controllerT(std::shared_ptr<fast::MQTT_communicator> _comm, const std::string &machine_filename)
 	: machines(_machines), available_slots(_available_slots), machine_usage(_machine_usage),
 	  id_to_config(_id_to_config), cmd_counter(0), work_counter_lock(worker_counter_mutex), comm(std::move(_comm)) {
 
 	// fill the machine file
-	FASTLIB_LOG(controller_log, trace) << "Reading machine file " << machine_filename << " ...";
+	FASTLIB_LOG(controller_log, info) << "Reading machine file " << machine_filename << " ...";
 	read_file(machine_filename, _machines);
 
-	FASTLIB_LOG(controller_log, trace) << "Machine file:";
-	FASTLIB_LOG(controller_log, trace) << "==============";
+	FASTLIB_LOG(controller_log, info) << "Machine file:";
+	FASTLIB_LOG(controller_log, info) << "==============";
 	for (const std::string &c : _machines) {
-		FASTLIB_LOG(controller_log, trace) << c;
+		FASTLIB_LOG(controller_log, info) << c;
 	}
-	FASTLIB_LOG(controller_log, trace) << "==============";
+	FASTLIB_LOG(controller_log, info) << "==============";
 
 	_machine_usage.assign(_machines.size(), std::array<size_t, 2>{{std::numeric_limits<size_t>::max(),
 																   std::numeric_limits<size_t>::max()}});
@@ -171,7 +171,7 @@ void controllerT::execute_command_internal(std::string command, size_t counter, 
 	assert(temp != -1);
 
 	// we are done
-	FASTLIB_LOG(controller_log, trace) << ">> \t '" << command << "' completed at configuration " << config[0].second;
+	FASTLIB_LOG(controller_log, info) << ">> \t '" << command << "' completed at configuration " << config[0].second;
 
 	std::lock_guard<std::mutex> work_counter_lock(worker_counter_mutex);
 

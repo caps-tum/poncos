@@ -24,7 +24,7 @@
 
 // inititalize fast-lib log
 FASTLIB_LOG_INIT(poncos_log, "poncos")
-FASTLIB_LOG_SET_LEVEL_GLOBAL(poncos_log, trace);
+FASTLIB_LOG_SET_LEVEL_GLOBAL(poncos_log, info);
 
 // COMMAND LINE PARAMETERS
 static std::string server;
@@ -127,15 +127,15 @@ static void parse_options(size_t argc, const char **argv) {
 int main(int argc, char const *argv[]) {
 	parse_options(static_cast<size_t>(argc), argv);
 
-	FASTLIB_LOG(poncos_log, trace) << "Reading job queue " << queue_filename << " ...";
+	FASTLIB_LOG(poncos_log, info) << "Reading job queue " << queue_filename << " ...";
 	job_queueT job_queue(queue_filename);
 
-	FASTLIB_LOG(poncos_log, trace) << "Job queue:";
-	FASTLIB_LOG(poncos_log, trace) << "==============";
+	FASTLIB_LOG(poncos_log, info) << "Job queue:";
+	FASTLIB_LOG(poncos_log, info) << "==============";
 	for (const auto &job : job_queue.jobs) {
-		FASTLIB_LOG(poncos_log, trace) << job;
+		FASTLIB_LOG(poncos_log, info) << job;
 	}
-	FASTLIB_LOG(poncos_log, trace) << "==============";
+	FASTLIB_LOG(poncos_log, info) << "==============";
 
 	auto comm = std::make_shared<fast::MQTT_communicator>("fast/poncos", "fast/poncos", "fast/poncos", server,
 														  static_cast<int>(port), 60);
@@ -167,7 +167,7 @@ int main(int argc, char const *argv[]) {
 		comm->add_subscription(topic);
 	}
 
-	FASTLIB_LOG(poncos_log, trace) << "MQTT ready!";
+	FASTLIB_LOG(poncos_log, info) << "MQTT ready!";
 
 	timers.tick("Runtime");
 	sched->schedule(job_queue, *comm, *controller, wait_time);
@@ -186,10 +186,10 @@ int main(int argc, char const *argv[]) {
 	std::stringstream total_time_stream;
 	total_time_stream << std::fixed << total_time;
 	std::string total_time_str = total_time_stream.str();
-	FASTLIB_LOG(poncos_log, trace) << "Start time: " <<  timers.emit()["Start time"].as<double>() << " s";
-	FASTLIB_LOG(poncos_log, trace) << "Runtime   : " << timers.emit()["Runtime"].as<double>() << " s";
-	FASTLIB_LOG(poncos_log, trace) << "Stop time : " << timers.emit()["Stop time"].as<double>() << " s";
-	FASTLIB_LOG(poncos_log, trace) << "Total time: " << total_time_str << " s";
+	FASTLIB_LOG(poncos_log, info) << "Start time: " <<  timers.emit()["Start time"].as<double>() << " s";
+	FASTLIB_LOG(poncos_log, info) << "Runtime   : " << timers.emit()["Runtime"].as<double>() << " s";
+	FASTLIB_LOG(poncos_log, info) << "Stop time : " << timers.emit()["Stop time"].as<double>() << " s";
+	FASTLIB_LOG(poncos_log, info) << "Total time: " << total_time_str << " s";
 
 	delete sched;
 	delete controller;

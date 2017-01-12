@@ -16,7 +16,7 @@
 
 // inititalize fast-lib log
 FASTLIB_LOG_INIT(vm_controller_log, "vm-controller")
-FASTLIB_LOG_SET_LEVEL_GLOBAL(vm_controller_log, trace);
+FASTLIB_LOG_SET_LEVEL_GLOBAL(vm_controller_log, info);
 
 vm_controller::vm_controller(const std::shared_ptr<fast::MQTT_communicator> &_comm, const std::string &machine_filename,
 							 std::string _slot_path)

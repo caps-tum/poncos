@@ -5,7 +5,7 @@
 
 // inititalize fast-lib log
 FASTLIB_LOG_INIT(scheduler_log, "scheduler")
-FASTLIB_LOG_SET_LEVEL_GLOBAL(scheduler_log, trace);
+FASTLIB_LOG_SET_LEVEL_GLOBAL(scheduler_log, info);
 
 schedulerT::~schedulerT() = default;
 
