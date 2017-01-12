@@ -22,6 +22,10 @@
 #include <fast-lib/message/migfra/time_measurement.hpp>
 #include <fast-lib/mqtt_communicator.hpp>
 
+// inititalize fast-lib log
+FASTLIB_LOG_INIT(poncos_log, "poncos")
+FASTLIB_LOG_SET_LEVEL_GLOBAL(poncos_log, trace);
+
 // COMMAND LINE PARAMETERS
 static std::string server;
 static size_t port = 1883;
@@ -123,17 +127,15 @@ static void parse_options(size_t argc, const char **argv) {
 int main(int argc, char const *argv[]) {
 	parse_options(static_cast<size_t>(argc), argv);
 
-	std::cout << "Reading job queue " << queue_filename << " ...";
-	std::cout.flush();
+	FASTLIB_LOG(poncos_log, trace) << "Reading job queue " << queue_filename << " ...";
 	job_queueT job_queue(queue_filename);
-	std::cout << " done!" << std::endl;
 
-	std::cout << "Job queue:\n";
-	std::cout << "==============\n";
-	for (const auto& job : job_queue.jobs) {
-		std::cout << job << "\n";
+	FASTLIB_LOG(poncos_log, trace) << "Job queue:";
+	FASTLIB_LOG(poncos_log, trace) << "==============";
+	for (const auto &job : job_queue.jobs) {
+		FASTLIB_LOG(poncos_log, trace) << job;
 	}
-	std::cout << "==============\n";
+	FASTLIB_LOG(poncos_log, trace) << "==============";
 
 	auto comm = std::make_shared<fast::MQTT_communicator>("fast/poncos", "fast/poncos", "fast/poncos", server,
 														  static_cast<int>(port), 60);
@@ -160,12 +162,12 @@ int main(int argc, char const *argv[]) {
 	timers.tock("Start time");
 
 	// subscribe to the various topics
-	for (const std::string& mach : controller->machines) {
+	for (const std::string &mach : controller->machines) {
 		std::string topic = "fast/agent/" + mach + "/mmbwmon/response";
 		comm->add_subscription(topic);
 	}
 
-	std::cout << "MQTT ready!\n\n";
+	FASTLIB_LOG(poncos_log, trace) << "MQTT ready!";
 
 	timers.tick("Runtime");
 	sched->schedule(job_queue, *comm, *controller, wait_time);
@@ -184,14 +186,10 @@ int main(int argc, char const *argv[]) {
 	std::stringstream total_time_stream;
 	total_time_stream << std::fixed << total_time;
 	std::string total_time_str = total_time_stream.str();
-	const auto maxwidth = static_cast<int>(total_time_str.length());
-	std::cout << "Start time: " << std::setw(maxwidth) << std::fixed << timers.emit()["Start time"].as<double>() << " s"
-			  << std::endl;
-	std::cout << "Runtime   : " << std::setw(maxwidth) << std::fixed << timers.emit()["Runtime"].as<double>() << " s"
-			  << std::endl;
-	std::cout << "Stop time : " << std::setw(maxwidth) << std::fixed << timers.emit()["Stop time"].as<double>() << " s"
-			  << std::endl;
-	std::cout << "Total time: " << std::setw(maxwidth) << total_time_str << " s" << std::endl;
+	FASTLIB_LOG(poncos_log, trace) << "Start time: " <<  timers.emit()["Start time"].as<double>() << " s";
+	FASTLIB_LOG(poncos_log, trace) << "Runtime   : " << timers.emit()["Runtime"].as<double>() << " s";
+	FASTLIB_LOG(poncos_log, trace) << "Stop time : " << timers.emit()["Stop time"].as<double>() << " s";
+	FASTLIB_LOG(poncos_log, trace) << "Total time: " << total_time_str << " s";
 
 	delete sched;
 	delete controller;

@@ -17,6 +17,8 @@
 #include <vector>
 #include <list>
 
+#include <fast-lib/log.hpp>
+
 struct vm_pool_elemT {
 	std::string name;
 	std::string mac_addr;

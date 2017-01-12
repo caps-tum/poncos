@@ -17,6 +17,11 @@ string( TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE )
 project(poncos)
 # Enable support for external projects
 include(ExternalProject)
+
+set(ENABLE_LOGGING ON CACHE BOOL "Enable logging.")
+if(ENABLE_LOGGING)
+	add_definitions(-DFASTLIB_ENABLE_LOGGING)
+endif()
 ########
 
 ########
