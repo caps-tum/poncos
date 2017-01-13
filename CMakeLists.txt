@@ -39,6 +39,12 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     ADD_DEFINITIONS(-Wno-exit-time-destructors -Wno-global-constructors)
   endif()
 
+  # Options required to reduce the noise of spdlog
+  ADD_DEFINITIONS(-Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-sign-conversion -Wno-padded -Wno-switch-enum)
+  ADD_DEFINITIONS(-Wno-old-style-cast -Wno-undef -Wno-documentation-unknown-command)
+  ADD_DEFINITIONS(-Wno-weak-vtables -Wno-global-constructors -Wno-exit-time-destructors -Wno-newline-eof)
+  ADD_DEFINITIONS(-Wno-missing-variable-declarations -Wno-double-promotion -Wno-extra-semi)
+
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   # Using GCC
   if ("${CMAKE_BUILD_TYPE}" STREQUAL "release")
