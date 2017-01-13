@@ -123,6 +123,7 @@ std::string cgroup_controller::generate_command(const jobT &job, size_t counter,
 	// a colon must be added between slots
 	bool add_colon = false;
 
+	// TODO: add thread_per_procs to command string for the support of multi-threaded applications
 	std::string ret = "mpiexec ";
 	for (size_t slot = 0; slot < SLOTS; ++slot) {
 		if (hosts_per_slot[slot] == 0) continue;
