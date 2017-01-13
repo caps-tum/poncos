@@ -125,7 +125,7 @@ std::string vm_controller::generate_command(const jobT &job, size_t /*counter*/,
 	// remove last ','
 	host_list.pop_back();
 
-	return "mpiexec -np " + std::to_string(job.nprocs) + " -hosts " + host_list + " " + job.command;
+	return "mpiexec -np " + std::to_string(job.nprocs) + " -genv OMP_NUM_THREADS " + std::to_string(job.threads_per_proc) + " -hosts " + host_list  + " " + job.command;
 }
 
 // generates start task for a single VM
