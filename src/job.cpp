@@ -40,10 +40,7 @@ YAML::Node job_queueT::emit() const {
 void job_queueT::load(const YAML::Node &node) { fast::load(jobs, node["job-list"]); }
 
 std::ostream &operator<<(std::ostream &os, const jobT &job) {
-	os << "mpiexec -np ";
-	os << job.nprocs;
-	os << " -hosts <host_list> ";
-	os << job.command;
+	os << job.emit();
 
 	return os;
 }
