@@ -42,11 +42,14 @@ std::vector<size_t> multi_app_sched::sort_machines_by_membw_util(const std::vect
 	std::vector<size_t> sorted_machine_idxs = machine_idxs;
 	std::sort(sorted_machine_idxs.begin(), sorted_machine_idxs.end(),
 			  [&total_membw_util, &reverse](size_t i1, size_t i2) {
+			  	  bool ret;
 				  if (reverse) {
-					  return total_membw_util[i1] > total_membw_util[i2];
+					  ret = total_membw_util[i1] > total_membw_util[i2];
 				  } else {
-					  return total_membw_util[i1] < total_membw_util[i2];
+					  ret = total_membw_util[i1] < total_membw_util[i2];
 				  }
+
+				  return ret;
 			  });
 
 	return sorted_machine_idxs;
@@ -88,8 +91,8 @@ void multi_app_sched::update_membw_util(const controllerT::execute_config &old_c
 }
 
 controllerT::execute_config multi_app_sched::generate_new_config(const controllerT::execute_config &old_config,
-																 const std::vector<size_t> marked_machines,
-																 const std::vector<size_t> swap_candidates) const {
+																 const std::vector<size_t> &marked_machines,
+																 const std::vector<size_t> &swap_candidates) const {
 	// are there any swap candidates?
 	if (swap_candidates.empty()) {
 		return {};

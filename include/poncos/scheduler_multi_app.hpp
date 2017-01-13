@@ -14,8 +14,8 @@ struct multi_app_sched : public schedulerT {
 						   const controllerT::execute_config &new_config);
 	std::vector<size_t> find_swap_candidates(const std::vector<size_t> &marked_machines) const;
 	controllerT::execute_config generate_new_config(const controllerT::execute_config &old_config,
-													const std::vector<size_t> marked_machines,
-													const std::vector<size_t> swap_candidates) const;
+													const std::vector<size_t> &marked_machines,
+													const std::vector<size_t> &swap_candidates) const;
 	std::vector<size_t> sort_machines_by_membw_util(const std::vector<size_t> &machine_idxs, const bool reverse) const;
 
 	double membw_util_of_node(const size_t &idx) const;

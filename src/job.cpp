@@ -23,7 +23,7 @@ job_queueT::job_queueT(const std::string &queue_filename) {
 	job_queue_file.open(queue_filename);
 	std::stringstream job_queue_stream;
 	job_queue_stream << job_queue_file.rdbuf();
-	from_string(job_queue_stream.str());
+	fast::Serializable::from_string(job_queue_stream.str());
 }
 
 YAML::Node job_queueT::emit() const {
