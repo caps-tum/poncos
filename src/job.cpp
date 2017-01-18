@@ -3,8 +3,7 @@
 #include <fstream>
 
 jobT::jobT(size_t nprocs, size_t threads_per_proc, std::string command)
-	: nprocs(nprocs), threads_per_proc(threads_per_proc), command(std::move(command)) {
-}
+	: nprocs(nprocs), threads_per_proc(threads_per_proc), command(std::move(command)) {}
 
 YAML::Node jobT::emit() const {
 	YAML::Node node;
@@ -40,7 +39,9 @@ YAML::Node job_queueT::emit() const {
 void job_queueT::load(const YAML::Node &node) { fast::load(jobs, node["job-list"]); }
 
 std::ostream &operator<<(std::ostream &os, const jobT &job) {
-	os << job.emit();
+	os << "nprocs: " << job.nprocs << "; ";
+	os << "threads-per-proc: " << job.threads_per_proc << "; ";
+	os << "cmd: " << job.command;
 
 	return os;
 }
