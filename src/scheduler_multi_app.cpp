@@ -33,7 +33,8 @@ std::vector<size_t> multi_app_sched::sort_machines_by_membw_util(const std::vect
 	assert(machine_idxs.size() <= membw_util.size());
 
 	// determine membw_util per node
-	std::vector<double> total_membw_util(membw_util.size());
+	std::vector<double> total_membw_util;
+	total_membw_util.reserve(membw_util.size());
 	for (size_t idx = 0; idx < membw_util.size(); ++idx) {
 		total_membw_util.emplace_back(membw_util_of_node(idx));
 	}
@@ -105,7 +106,8 @@ controllerT::execute_config multi_app_sched::generate_new_config(const controlle
 	// 	total_membw_util to those we a low value. For each pair choose
 	// 	the swap slot such that the variance of the total_membw_util of
 	// 	the respective nodes is minimized (see below).
-	controllerT::execute_config new_config_sorted(old_config.size());
+	controllerT::execute_config new_config_sorted;
+	new_config_sorted.reserve(old_config.size());
 	for (size_t idx = 0; idx < marked_machines.size(); ++idx) {
 		const size_t old_mach = marked_machines_sorted[idx];
 		const size_t new_mach = swap_candidates[idx];
