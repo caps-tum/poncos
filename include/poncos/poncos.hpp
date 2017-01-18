@@ -38,4 +38,5 @@ extern const sched_configT co_configs[SLOTS];
 
 void read_file(const std::string& filename, std::vector<std::string> &command_queue);
 
+std::ostream &operator<<(std::ostream &os, const std::vector<size_t> &vec);
 #endif /* end of include guard: poncos_hpp */

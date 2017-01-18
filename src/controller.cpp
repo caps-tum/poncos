@@ -185,3 +185,17 @@ void controllerT::execute_command_internal(std::string command, size_t counter, 
 }
 
 std::string controllerT::cmd_name_from_id(size_t id) const { return std::string("poncos_") + std::to_string(id); }
+
+std::ostream &operator<<(std::ostream &os, const controllerT::execute_config &config) {
+	os << "[";
+	std::string configs;
+	for (const auto &config_elem : config) {
+		configs += "[" + std::to_string(config_elem.first) + "," +  std::to_string(config_elem.second) + "],";
+	}
+	if (!configs.empty())
+		configs.pop_back();
+	os << configs;
+	os << "]";
+
+	return os;
+}

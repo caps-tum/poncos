@@ -88,4 +88,7 @@ class controllerT {
 	std::vector<execute_config> _id_to_config;
 };
 
+
+std::ostream &operator<<(std::ostream &os, const controllerT::execute_config &config);
+
 #endif /* end of include guard: poncos_controller */
