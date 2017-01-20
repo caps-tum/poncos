@@ -35,17 +35,3 @@ void read_file(const std::string& filename, std::vector<std::string> &command_qu
 		if (command[0] != '#') command_queue.push_back(command);
 	}
 }
-
-std::ostream &operator<<(std::ostream &os, const std::vector<size_t> &vec) {
-	os << "[";
-	std::string vec_str;
-	for (const auto &vec_elem : vec) {
-		vec_str += std::to_string(vec_elem) + ",";
-	}
-	if (!vec_str.empty())
-		vec_str.pop_back();
-	os << vec_str;
-	os << "]";
-
-	return os;
-}
