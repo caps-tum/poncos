@@ -153,12 +153,12 @@ size_t controllerT::execute(const jobT &job, const execute_config &config, std::
 	}
 
 	const std::string command = generate_command(job, cmd_counter, config);
-	thread_pool.emplace_back(&controllerT::execute_command_internal, this, command, cmd_counter, config, callback);
+	thread_pool.emplace_back(&controllerT::execute_command_internal, this, command, cmd_counter, callback);
 
 	return cmd_counter++;
 }
 
-void controllerT::execute_command_internal(std::string command, size_t counter, const execute_config &config,
+void controllerT::execute_command_internal(std::string command, size_t counter,
 										   const std::function<void(size_t)> &callback) {
 	const std::string cmd_name = cmd_name_from_id(counter);
 
@@ -171,10 +171,9 @@ void controllerT::execute_command_internal(std::string command, size_t counter, 
 	assert(temp != -1);
 
 	// we are done
-	FASTLIB_LOG(controller_log, info) << ">> \t '" << command << "' completed at configuration " << config[0].second;
-	controllerT::execute_config cur_config = id_to_config[counter];
-
 	std::lock_guard<std::mutex> work_counter_lock(worker_counter_mutex);
+	controllerT::execute_config cur_config = id_to_config[counter];
+	FASTLIB_LOG(controller_log, info) << ">> \t '" << command << "' completed at configuration " << cur_config[0].second;
 
 	for (const auto &i : cur_config) {
 		assert(machine_usage[i.first][i.second] != std::numeric_limits<size_t>::max());
@@ -191,10 +190,9 @@ std::ostream &operator<<(std::ostream &os, const controllerT::execute_config &co
 	os << "[";
 	std::string configs;
 	for (const auto &config_elem : config) {
-		configs += "[" + std::to_string(config_elem.first) + "," +  std::to_string(config_elem.second) + "],";
+		configs += "[" + std::to_string(config_elem.first) + "," + std::to_string(config_elem.second) + "],";
 	}
-	if (!configs.empty())
-		configs.pop_back();
+	if (!configs.empty()) configs.pop_back();
 	os << configs;
 	os << "]";
 

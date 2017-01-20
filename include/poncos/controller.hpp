@@ -56,8 +56,7 @@ class controllerT {
 
   protected:
 	// executed by a new thread, calls system to start the application
-	void execute_command_internal(std::string command, size_t counter, const execute_config &config,
-								  const std::function<void(size_t)> &callback);
+	void execute_command_internal(std::string command, size_t counter, const std::function<void(size_t)> &callback);
 	virtual std::string generate_command(const jobT &command, size_t counter, const execute_config &config) const = 0;
 	std::string cmd_name_from_id(const size_t id) const;
 
@@ -87,7 +86,6 @@ class controllerT {
 	std::vector<std::array<size_t, SLOTS>> _machine_usage;
 	std::vector<execute_config> _id_to_config;
 };
-
 
 std::ostream &operator<<(std::ostream &os, const controllerT::execute_config &config);
 
