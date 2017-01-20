@@ -172,15 +172,16 @@ void controllerT::execute_command_internal(std::string command, size_t counter, 
 
 	// we are done
 	FASTLIB_LOG(controller_log, info) << ">> \t '" << command << "' completed at configuration " << config[0].second;
+	controllerT::execute_config cur_config = id_to_config[counter];
 
 	std::lock_guard<std::mutex> work_counter_lock(worker_counter_mutex);
 
-	for (const auto &i : config) {
+	for (const auto &i : cur_config) {
 		assert(machine_usage[i.first][i.second] != std::numeric_limits<size_t>::max());
 		_machine_usage[i.first][i.second] = std::numeric_limits<size_t>::max();
 	}
 
-	callback(config[0].second);
+	callback(counter);
 	worker_counter_cv.notify_one();
 }
 
