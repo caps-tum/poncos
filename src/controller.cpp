@@ -12,7 +12,7 @@ FASTLIB_LOG_SET_LEVEL_GLOBAL(controller_log, info);
 
 controllerT::controllerT(std::shared_ptr<fast::MQTT_communicator> _comm, const std::string &machine_filename)
 	: machines(_machines), available_slots(_available_slots), machine_usage(_machine_usage),
-	  id_to_config(_id_to_config), cmd_counter(0), work_counter_lock(worker_counter_mutex), comm(std::move(_comm)) {
+	  id_to_config(_id_to_config), id_to_job(_id_to_job), cmd_counter(0), work_counter_lock(worker_counter_mutex), comm(std::move(_comm)) {
 
 	// fill the machine file
 	FASTLIB_LOG(controller_log, info) << "Reading machine file " << machine_filename << " ...";
@@ -147,6 +147,7 @@ size_t controllerT::execute(const jobT &job, const execute_config &config, std::
 
 	id_to_tpool.push_back(thread_pool.size());
 	_id_to_config.push_back(config);
+	_id_to_job.push_back(job);
 	for (const auto &i : config) {
 		assert(machine_usage[i.first][i.second] == std::numeric_limits<size_t>::max());
 		_machine_usage[i.first][i.second] = cmd_counter;

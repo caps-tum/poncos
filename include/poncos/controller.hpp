@@ -57,6 +57,8 @@ class controllerT {
 	const machine_usageT &machine_usage;
 	// maps ids to the execution configuration
 	const std::vector<execute_config> &id_to_config;
+	// maps ids to the jobs
+	const std::vector<jobT> &id_to_job;
 
   protected:
 	// executed by a new thread, calls system to start the application
@@ -89,6 +91,7 @@ class controllerT {
 	std::vector<std::string> _machines;
 	machine_usageT _machine_usage;
 	std::vector<execute_config> _id_to_config;
+	std::vector<jobT> _id_to_job;
 };
 
 std::ostream &operator<<(std::ostream &os, const controllerT::execute_config_elemT &config_elem);
