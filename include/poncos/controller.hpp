@@ -10,6 +10,7 @@
 #include <vector>
 
 #include <fast-lib/mqtt_communicator.hpp>
+#include <fast-lib/message/migfra/time_measurement.hpp>
 
 #include "poncos/job.hpp"
 #include "poncos/poncos.hpp"
@@ -92,6 +93,7 @@ class controllerT {
 	machine_usageT _machine_usage;
 	std::vector<execute_config> _id_to_config;
 	std::vector<jobT> _id_to_job;
+	fast::msg::migfra::Time_measurement timestamps;
 };
 
 std::ostream &operator<<(std::ostream &os, const controllerT::execute_config_elemT &config_elem);
