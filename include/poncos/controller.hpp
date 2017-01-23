@@ -9,8 +9,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include <fast-lib/mqtt_communicator.hpp>
 #include <fast-lib/message/migfra/time_measurement.hpp>
+#include <fast-lib/mqtt_communicator.hpp>
 
 #include "poncos/job.hpp"
 #include "poncos/poncos.hpp"
@@ -86,6 +86,9 @@ class controllerT {
 	// reference to a mqtt communictor
 	std::shared_ptr<fast::MQTT_communicator> comm;
 
+	// timestamps of job start/stop/migration
+	fast::msg::migfra::Time_measurement timestamps;
+
   private:
 	// see above for docu
 	size_t _available_slots;
@@ -93,10 +96,9 @@ class controllerT {
 	machine_usageT _machine_usage;
 	std::vector<execute_config> _id_to_config;
 	std::vector<jobT> _id_to_job;
-	fast::msg::migfra::Time_measurement timestamps;
 };
 
 std::ostream &operator<<(std::ostream &os, const controllerT::execute_config_elemT &config_elem);
-//std::ostream &operator<<(std::ostream &os, const controllerT::slot_allocationT &slot_allocation);
+// std::ostream &operator<<(std::ostream &os, const controllerT::slot_allocationT &slot_allocation);
 
 #endif /* end of include guard: poncos_controller */

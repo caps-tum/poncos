@@ -61,6 +61,7 @@ void vm_controller::thaw_opposing(const size_t id) {
 }
 
 void vm_controller::update_config(const size_t id, const execute_config &new_config) {
+	timestamps.tick("update-config-job-#" + std::to_string(id));
 	const execute_config &old_config = id_to_config[id];
 	assert(old_config.size() == new_config.size());
 
@@ -111,6 +112,7 @@ void vm_controller::update_config(const size_t id, const execute_config &new_con
 		FASTLIB_LOG(vm_controller_log, debug) << "sending message \n topic: " << topic << "\n message:\n"
 											  << m.to_string();
 
+		timestamps.tick("swap-" + src_host + "-" + dest_host + "-job-#" + std::to_string(id));
 		comm->send_message(m.to_string(), topic);
 	}
 
@@ -122,6 +124,9 @@ void vm_controller::update_config(const size_t id, const execute_config &new_con
 		const size_t src_slot = old_config[idx].second;
 		const size_t dest_slot = new_config[idx].second;
 
+		const std::string &src_host = machines[src_host_idx];
+		const std::string &dest_host = machines[dest_host_idx];
+
 		// source and destination host are the same
 		if (src_host_idx == dest_host_idx) {
 			continue;
@@ -130,6 +135,7 @@ void vm_controller::update_config(const size_t id, const execute_config &new_con
 		// wait for VMs to be migrated
 		std::string topic = "fast/migfra/" + machines[src_host_idx] + "/result";
 		response.from_string(comm->get_message(topic));
+		timestamps.tock("swap-" + src_host + "-" + dest_host + "-job-#" + std::to_string(id));
 		assert(response.results.front().status == "success");
 
 		// update slot allocations
@@ -138,6 +144,8 @@ void vm_controller::update_config(const size_t id, const execute_config &new_con
 
 	// update id_to_config for all affected jobs and machine_usage.
 	controllerT::update_config(id, new_config);
+
+	timestamps.tick("update-config-job-#" + std::to_string(id));
 }
 
 std::string vm_controller::generate_command(const jobT &job, size_t /*counter*/, const execute_config &config) const {
