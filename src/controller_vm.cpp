@@ -145,7 +145,7 @@ void vm_controller::update_config(const size_t id, const execute_config &new_con
 	// update id_to_config for all affected jobs and machine_usage.
 	controllerT::update_config(id, new_config);
 
-	timestamps.tick("update-config-job-#" + std::to_string(id));
+	timestamps.tock("update-config-job-#" + std::to_string(id));
 }
 
 std::string vm_controller::generate_command(const jobT &job, size_t /*counter*/, const execute_config &config) const {
