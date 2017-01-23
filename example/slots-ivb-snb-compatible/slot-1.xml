@@ -1,0 +1,94 @@
+<?xml version="1.0"?><domain type="kvm">
+  <name>parastation-2</name>
+  <uuid>8b9d292a-afe6-11e6-bf1d-002590926adc</uuid>
+  <memory unit="KiB">20971520</memory>
+  <currentMemory unit="KiB">20971520</currentMemory>
+  <memtune>
+    <hard_limit unit='KiB'>35651584</hard_limit>
+  </memtune>
+  <vcpu placement="static">8</vcpu>
+  <cputune><vcpupin vcpu="0" cpuset="4"/><vcpupin vcpu="1" cpuset="5"/><vcpupin vcpu="2" cpuset="6"/><vcpupin vcpu="3" cpuset="7"/><vcpupin vcpu="4" cpuset="12"/><vcpupin vcpu="5" cpuset="13"/><vcpupin vcpu="6" cpuset="14"/><vcpupin vcpu="7" cpuset="15"/></cputune>
+
+  <os>
+    <type arch="x86_64" machine="pc-i440fx-2.6">hvm</type>
+    <boot dev="hd"/>
+  </os>
+  <features>
+    <acpi/>
+    <apic/>
+  </features>
+    <cpu>
+      <arch>x86_64</arch>
+      <model>SandyBridge</model>
+      <vendor>Intel</vendor>
+      <feature name='vme'/>
+      <feature name='ds'/>
+      <feature name='acpi'/>
+      <feature name='ss'/>
+      <feature name='ht'/>
+      <feature name='tm'/>
+      <feature name='pbe'/>
+      <feature name='dtes64'/>
+      <feature name='monitor'/>
+      <feature name='ds_cpl'/>
+      <feature name='vmx'/>
+      <feature name='smx'/>
+      <feature name='est'/>
+      <feature name='tm2'/>
+      <feature name='xtpr'/>
+      <feature name='pdcm'/>
+      <feature name='pcid'/>
+      <feature name='dca'/>
+      <feature name='osxsave'/>
+      <feature name='arat'/>
+      <feature name='xsaveopt'/>
+      <feature name='pdpe1gb'/>
+  <numa><cell id="0" cpus="0,1,2,3" memory="10485760" unit="KiB"/><cell id="1" cpus="4,5,6,7" memory="10485760" unit="KiB"/></numa><topology sockets="2" cores="4" threads="1"/></cpu>
+  <clock offset="utc">
+    <timer name="rtc" tickpolicy="catchup"/>
+    <timer name="pit" tickpolicy="delay"/>
+    <timer name="hpet" present="no"/>
+  </clock>
+  <on_poweroff>destroy</on_poweroff>
+  <on_reboot>restart</on_reboot>
+  <on_crash>restart</on_crash>
+  <pm>
+    <suspend-to-mem enabled="no"/>
+    <suspend-to-disk enabled="no"/>
+  </pm>
+  <devices>
+    <emulator>/global/cluster/centos/qemu-2.6.0/bin/qemu-system-x86_64</emulator>
+    <disk type="file" device="disk">
+      <driver name="qemu" type="qcow2" cache="none"/>
+      <source file="/global/work/vms/parastation/parastation-1.qcow2"/>
+      <target dev="vda" bus="virtio"/>
+      <address type="pci" domain="0x0000" bus="0x00" slot="0x07" function="0x0"/>
+    </disk>
+    <interface type="bridge">
+      <mac address="00:16:3e:0a:5b:0f"/>
+      <source bridge="br0"/>
+      <model type="virtio"/>
+      <address type="pci" domain="0x0000" bus="0x00" slot="0x03" function="0x0"/>
+    </interface>
+    <serial type="pty">
+      <target port="0"/>
+    </serial>
+    <console type="pty">
+      <target type="serial" port="0"/>
+    </console>
+    <channel type="unix">
+      <source mode="bind" path="/var/lib/libvirt/qemu/channel/target/parastation-1.org.qemu.guest_agent.0"/>
+      <target type="virtio" name="org.qemu.guest_agent.0"/>
+      <address type="virtio-serial" controller="0" bus="0" port="1"/>
+    </channel>
+    <input type="mouse" bus="ps2"/>
+    <input type="keyboard" bus="ps2"/>
+    <sound model="ich6">
+      <address type="pci" domain="0x0000" bus="0x00" slot="0x04" function="0x0"/>
+    </sound>
+    <video>
+      <model type="qxl" ram="65536" vram="65536" vgamem="16384" heads="1"/>
+      <address type="pci" domain="0x0000" bus="0x00" slot="0x02" function="0x0"/>
+    </video>
+  </devices>
+<numatune><memnode cellid="0" mode="strict" nodeset="0"/><memnode cellid="1" mode="strict" nodeset="1"/></numatune></domain>
