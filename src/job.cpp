@@ -19,7 +19,7 @@ void jobT::load(const YAML::Node &node) {
 	fast::load(nprocs, node["nprocs"]);
 	fast::load(threads_per_proc, node["threads-per-proc"]);
 	fast::load(command, node["cmd"]);
-	fast::load(command, node["uses-sr-protocol"]);
+	fast::load(uses_sr_protocol, node["uses-sr-protocol"]);
 }
 
 job_queueT::job_queueT(std::vector<jobT> jobs) : jobs(std::move(jobs)) {}
@@ -44,7 +44,7 @@ void job_queueT::load(const YAML::Node &node) { fast::load(jobs, node["job-list"
 std::ostream &operator<<(std::ostream &os, const jobT &job) {
 	os << "nprocs: " << job.nprocs << "; ";
 	os << "threads-per-proc: " << job.threads_per_proc << "; ";
-	os << "cmd: " << job.command;
+	os << "cmd: " << job.command << "; ";
 	os << "uses-sr-protocol: " << job.uses_sr_protocol;
 
 	return os;
