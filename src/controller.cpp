@@ -37,6 +37,11 @@ controllerT::~controllerT() {
 		if (t.joinable()) t.join();
 	}
 	thread_pool.resize(0);
+
+
+	FASTLIB_LOG(controller_log, info) << "Controller timestamps:";
+	FASTLIB_LOG(controller_log, info) << "==========================";
+	FASTLIB_LOG(controller_log, info) << "\n" << timestamps.emit();
 }
 
 void controllerT::done() {
