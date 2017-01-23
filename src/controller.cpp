@@ -163,10 +163,10 @@ void controllerT::execute_command_internal(std::string command, size_t counter,
 										   const std::function<void(size_t)> &callback) {
 	const std::string cmd_name = cmd_name_from_id(counter);
 
-	command += " 2>&1 ";
 	// command += "| tee ";
 	command += "> ";
 	command += cmd_name + ".log";
+	command += " 2>&1 ";
 
 	auto temp = system(command.c_str());
 	assert(temp != -1);
