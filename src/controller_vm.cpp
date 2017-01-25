@@ -92,6 +92,10 @@ void vm_controller::update_config(const size_t id, const execute_config &new_con
 		auto task = std::make_shared<fast::msg::migfra::Migrate>(src_guest, dest_host, "warm", false, true, 0, false);
 		task->swap_with = fast::msg::migfra::Swap_with();
 		task->swap_with.get().vm_name = dest_guest;
+		if (src_slot != dest_slot) {
+			task->vcpu_map.get() = generate_vcpu_map(dest_slot);
+			task->swap_with.get().vcpu_map.get() = generate_vcpu_map(src_slot);
+		}
 
 		// set pscom-hook-procs if necessary
 		// we assume evently distributed processes across the VMs
@@ -146,6 +150,18 @@ void vm_controller::update_config(const size_t id, const execute_config &new_con
 	controllerT::update_config(id, new_config);
 
 	timestamps.tock("update-config-job-#" + std::to_string(id));
+}
+
+std::vector<std::vector<unsigned int>> vm_controller::generate_vcpu_map(size_t slot_id) const {
+	std::vector<std::vector<unsigned int>> vcpu_map;
+	vcpu_map.reserve(SLOT_SIZE);
+
+	for (auto cpu_id : co_configs[slot_id].cpus) {
+		vcpu_map.emplace_back(std::vector<unsigned int>({static_cast<unsigned int>(cpu_id)}));
+	}
+	assert(vcpu_map.size() == SLOT_SIZE);
+
+	return vcpu_map;
 }
 
 std::string vm_controller::generate_command(const jobT &job, size_t /*counter*/, const execute_config &config) const {

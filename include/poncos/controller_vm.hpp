@@ -48,6 +48,7 @@ class vm_controller : public controllerT {
 
   private:
 	std::string generate_command(const jobT &job, size_t counter, const execute_config &config) const;
+	std::vector<std::vector<unsigned int>> generate_vcpu_map(size_t slot_id) const;
 	std::shared_ptr<fast::msg::migfra::Start> generate_start_task(size_t slot, vm_pool_elemT &free_vm);
 
 	template <typename T> void suspend_resume_virt_cluster(const execute_config &config);
