@@ -91,10 +91,10 @@ void vm_controller::update_config(const size_t id, const execute_config &new_con
 		std::string topic = "fast/migfra/" + src_host + "/task";
 		auto task = std::make_shared<fast::msg::migfra::Migrate>(src_guest, dest_host, "warm", false, true, 0, false);
 		task->swap_with = fast::msg::migfra::Swap_with();
-		task->swap_with.get().vm_name = dest_guest;
+		task->swap_with->vm_name = dest_guest;
 		if (src_slot != dest_slot) {
-			task->vcpu_map.get() = generate_vcpu_map(dest_slot);
-			task->swap_with.get().vcpu_map.get() = generate_vcpu_map(src_slot);
+			task->vcpu_map = generate_vcpu_map(dest_slot);
+			task->swap_with->vcpu_map = generate_vcpu_map(src_slot);
 		}
 
 		// set pscom-hook-procs if necessary
@@ -102,11 +102,11 @@ void vm_controller::update_config(const size_t id, const execute_config &new_con
 		// TODO: handle remainder of the division
 		if (src_job.uses_sr_protocol) {
 			const size_t src_proc_count = src_job.nprocs / old_config.size();
-			task->pscom_hook_procs.get() = std::to_string(src_proc_count);
+			task->pscom_hook_procs = std::to_string(src_proc_count);
 		}
 		if (dest_job.uses_sr_protocol) {
 			const size_t dest_proc_count = dest_job.nprocs / id_to_config[dest_job_id].size();
-			task->swap_with.get().pscom_hook_procs = std::to_string(dest_proc_count);
+			task->swap_with->pscom_hook_procs = std::to_string(dest_proc_count);
 		}
 
 		// put into task container

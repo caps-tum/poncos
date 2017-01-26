@@ -162,9 +162,10 @@ int main(int argc, char const *argv[]) {
 	if (sched == nullptr) sched = new two_app_sched();
 
 	// Create Time_measurement instance
-	fast::msg::migfra::Time_measurement timers(true);
+	fast::msg::migfra::Time_measurement timers(true, "timestamps");
 
 	// start virtual clusters on all slots
+	timers.tick("Total time");
 	timers.tick("Start time");
 	controller->init();
 	timers.tock("Start time");
@@ -184,20 +185,13 @@ int main(int argc, char const *argv[]) {
 	timers.tick("Stop time");
 	controller->dismantle();
 	timers.tock("Stop time");
-
-	double total_time = 0;
-	for (auto timer : timers.emit()) {
-		total_time += timer.second.as<double>();
-	}
+	timers.tock("Total time");
 
 	// print timer
-	std::stringstream total_time_stream;
-	total_time_stream << std::fixed << total_time;
-	std::string total_time_str = total_time_stream.str();
-	FASTLIB_LOG(poncos_log, info) << "Start time: " << timers.emit()["Start time"].as<double>() << " s";
-	FASTLIB_LOG(poncos_log, info) << "Runtime   : " << timers.emit()["Runtime"].as<double>() << " s";
-	FASTLIB_LOG(poncos_log, info) << "Stop time : " << timers.emit()["Stop time"].as<double>() << " s";
-	FASTLIB_LOG(poncos_log, info) << "Total time: " << total_time_str << " s";
+	FASTLIB_LOG(poncos_log, info) << "Start time: " << timers.emit()["Start time"].as<std::string>() << " s";
+	FASTLIB_LOG(poncos_log, info) << "Runtime   : " << timers.emit()["Runtime"].as<std::string>() << " s";
+	FASTLIB_LOG(poncos_log, info) << "Stop time : " << timers.emit()["Stop time"].as<std::string>() << " s";
+	FASTLIB_LOG(poncos_log, info) << "Total time: " << timers.emit()["Total time"].as<std::string>() << " s";
 
 	delete sched;
 	delete controller;
