@@ -66,6 +66,8 @@ template <typename messageT>
 void cgroup_controller::send_message(const controllerT::execute_config &config, const std::string &topic_adn) const {
 	for (auto config_elem : config) {
 		const size_t id = machine_usage[config_elem.first][config_elem.second];
+		if (id == std::numeric_limits<size_t>::max()) continue; // there is no job to freeze/thaw
+
 		const messageT m(cmd_name_from_id(id));
 		const std::string topic = "fast/agent/" + machines[config_elem.first] + topic_adn;
 
@@ -73,6 +75,8 @@ void cgroup_controller::send_message(const controllerT::execute_config &config, 
 	}
 
 	for (auto config_elem : config) {
+		if (machine_usage[config_elem.first][config_elem.second] == std::numeric_limits<size_t>::max())
+			continue; // there is no job to freeze/thaw
 		const std::string topic = "fast/agent/" + machines[config_elem.first] + topic_adn + "/ack";
 
 		comm->get_message(topic);
