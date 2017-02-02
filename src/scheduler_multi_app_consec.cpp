@@ -18,7 +18,7 @@ FASTLIB_LOG_SET_LEVEL_GLOBAL(scheduler_multi_app_consec_log, info);
 void multi_app_sched_consec::command_done(const size_t /*id*/, controllerT & /*controller*/) {}
 
 void multi_app_sched_consec::schedule(const job_queueT &job_queue, fast::MQTT_communicator & /*comm*/,
-									  controllerT &controller, std::chrono::seconds wait_time) {
+									  controllerT &controller, std::chrono::seconds /*wait_time*/) {
 
 	// for all commands
 	for (auto job : job_queue.jobs) {
@@ -46,9 +46,6 @@ void multi_app_sched_consec::schedule(const job_queueT &job_queue, fast::MQTT_co
 		// start job
 		controller.execute(job, config, [&](const size_t config) { command_done(config, controller); });
 		FASTLIB_LOG(scheduler_multi_app_consec_log, info) << ">> \t starting '" << job;
-
-		// wait ... if we really want to
-		std::this_thread::sleep_for(wait_time);
 	}
 
 	controller.done();
