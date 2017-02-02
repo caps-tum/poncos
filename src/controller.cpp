@@ -70,8 +70,9 @@ void controllerT::wait_for_ressource(const size_t requested, const size_t slots_
 			for (size_t s = 0; s < SLOTS; ++s) {
 				if (i[s] == std::numeric_limits<size_t>::max()) {
 					counter += SLOT_SIZE;
+					++allocated_slots;
 
-					if (allocated_slots++ == slots_per_host) break;
+					if (allocated_slots == slots_per_host) break;
 				}
 			}
 		}
