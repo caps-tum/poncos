@@ -58,7 +58,7 @@ void controllerT::done() {
 	});
 }
 
-void controllerT::wait_for_ressource(const size_t requested) {
+void controllerT::wait_for_ressource(const size_t requested, const size_t slots_per_host) {
 	if (!work_counter_lock.owns_lock()) work_counter_lock.lock();
 
 	worker_counter_cv.wait(work_counter_lock, [&] {
@@ -66,10 +66,12 @@ void controllerT::wait_for_ressource(const size_t requested) {
 		size_t counter = 0;
 
 		for (auto i : machine_usage) {
+			size_t allocated_slots = 0;
 			for (size_t s = 0; s < SLOTS; ++s) {
 				if (i[s] == std::numeric_limits<size_t>::max()) {
 					counter += SLOT_SIZE;
-					break;
+
+					if (allocated_slots++ == slots_per_host) break;
 				}
 			}
 		}
