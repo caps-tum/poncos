@@ -140,8 +140,10 @@ std::string cgroup_controller::generate_command(const jobT &job, size_t counter,
 		if (hosts_per_slot[slot] == 0) continue;
 
 		std::string &command = commands[slot];
+                command = " ./cgroup_wrapper.sh ";
+                command += cmd_name_from_id(counter) + " ";
 
-		command += " " + job.command;
+		command += job.command;
 	}
 
 	// some dedicated nodes, requires special cgroup config
