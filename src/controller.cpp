@@ -58,6 +58,36 @@ void controllerT::done() {
 	});
 }
 
+void controllerT::freeze(const size_t id) {
+	assert(id < id_to_config.size());
+
+	timestamps.tick("freeze-job-#" + std::to_string(id));
+
+	const execute_config &config = id_to_config[id];
+	suspend_resume_config<fast::msg::migfra::Suspend>(config);
+}
+
+void controllerT::thaw(const size_t id) {
+	assert(id < id_to_config.size());
+
+	const execute_config &config = id_to_config[id];
+	suspend_resume_config<fast::msg::migfra::Resume>(config);
+
+	timestamps.tock("freeze-job-#" + std::to_string(id));
+}
+
+void controllerT::freeze_opposing(const size_t id) {
+	const execute_config opposing_config = generate_opposing_config(id);
+
+	suspend_resume_config<fast::msg::migfra::Suspend>(opposing_config);
+}
+
+void controllerT::thaw_opposing(const size_t id) {
+	const execute_config &opposing_config = generate_opposing_config(id);
+
+	suspend_resume_config<fast::msg::migfra::Resume>(opposing_config);
+}
+
 void controllerT::wait_for_ressource(const size_t requested, const size_t slots_per_host) {
 	if (!work_counter_lock.owns_lock()) work_counter_lock.lock();
 
@@ -201,3 +231,29 @@ void controllerT::execute_command_internal(std::string command, size_t counter,
 }
 
 std::string controllerT::cmd_name_from_id(size_t id) const { return std::string("poncos_") + std::to_string(id); }
+
+template <typename T> void controllerT::suspend_resume_config(const execute_config &config) {
+	// request OP
+	for (auto config_elem : config) {
+		std::string topic = "fast/migfra/" + machines[config_elem.first] + "/task";
+
+		auto task = std::make_shared<T>(domain_name_from_config_elem(config_elem), true);
+
+		fast::msg::migfra::Task_container m;
+		m.tasks.push_back(task);
+
+		comm->send_message(m.to_string(), topic);
+	}
+
+	// wait for results
+	fast::msg::migfra::Result_container response;
+	for (auto config_elem : config) {
+		std::string topic = "fast/migfra/" + machines[config_elem.first] + "/result";
+		response.from_string(comm->get_message(topic));
+
+		if (response.results.front().status != "success") {
+			assert(response.results.front().details !=
+				   "Error suspending domain: Requested operation is not valid: domain is not running");
+		}
+	}
+}

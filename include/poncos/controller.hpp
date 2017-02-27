@@ -33,10 +33,14 @@ class controllerT {
 	virtual void init() = 0;
 	virtual void dismantle() = 0;
 
-	virtual void freeze(const size_t id) = 0;
-	virtual void thaw(const size_t id) = 0;
-	virtual void freeze_opposing(const size_t id) = 0;
-	virtual void thaw_opposing(const size_t id) = 0;
+	// freezes all domains with supplied id
+	void freeze(const size_t id);
+	// thaws all domains with the supplied id
+	void thaw(const size_t id);
+	// freeze domains opposing to the supplied id
+	void freeze_opposing(const size_t id);
+	// thaws domains opposing to the supplied id
+	void thaw_opposing(const size_t id);
 
 	virtual void update_config(const size_t id, const execute_config &new_config) = 0;
 	virtual bool update_supported() = 0;
@@ -70,31 +74,7 @@ class controllerT {
 	virtual std::string domain_name_from_config_elem(const execute_config_elemT &config_elem) const = 0;
 	std::string cmd_name_from_id(const size_t id) const;
 
-	template <typename T> void suspend_resume_config(const execute_config &config) {
-		// request OP
-		for (auto config_elem : config) {
-			std::string topic = "fast/migfra/" + machines[config_elem.first] + "/task";
-
-			auto task = std::make_shared<T>(domain_name_from_config_elem(config_elem), true);
-
-			fast::msg::migfra::Task_container m;
-			m.tasks.push_back(task);
-
-			comm->send_message(m.to_string(), topic);
-		}
-
-		// wait for results
-		fast::msg::migfra::Result_container response;
-		for (auto config_elem : config) {
-			std::string topic = "fast/migfra/" + machines[config_elem.first] + "/result";
-			response.from_string(comm->get_message(topic));
-
-			if (response.results.front().status != "success") {
-				assert(response.results.front().details !=
-					   "Error suspending domain: Requested operation is not valid: domain is not running");
-			}
-		}
-	}
+	template <typename T> void suspend_resume_config(const execute_config &config);
 
   protected:
 	// a counter that is increased with every new cgroup created

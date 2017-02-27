@@ -17,13 +17,6 @@
 cgroup_controller::cgroup_controller(const std::shared_ptr<fast::MQTT_communicator> &_comm,
 									 const std::string &machine_filename)
 	: controllerT(_comm, machine_filename) {
-	// subscribe to the various topics
-	for (const std::string &mach : machines) {
-		std::string topic = "fast/agent/" + mach + "/mmbwmon/restart/ack";
-		comm->add_subscription(topic);
-		topic = "fast/agent/" + mach + "/mmbwmon/stop/ack";
-		comm->add_subscription(topic);
-	}
 }
 
 void cgroup_controller::init() {}
@@ -32,59 +25,8 @@ void cgroup_controller::dismantle() {}
 // TODO should delete the mpi host files!
 cgroup_controller::~cgroup_controller() = default;
 
-void cgroup_controller::freeze(const size_t id) {
-	assert(id < id_to_config.size());
-
-	timestamps.tick("freeze-job-#" + std::to_string(id));
-	const execute_config &config = id_to_config[id];
-
-	send_message<fast::msg::agent::mmbwmon::stop>(config, "/mmbwmon/stop");
-}
-
-void cgroup_controller::thaw(const size_t id) {
-	assert(id < id_to_config.size());
-
-	const execute_config &config = id_to_config[id];
-
-	send_message<fast::msg::agent::mmbwmon::restart>(config, "/mmbwmon/restart");
-	timestamps.tock("freeze-job-#" + std::to_string(id));
-}
-
-void cgroup_controller::freeze_opposing(const size_t id) {
-	const execute_config opposing_config = generate_opposing_config(id);
-
-	send_message<fast::msg::agent::mmbwmon::stop>(opposing_config, "/mmbwmon/stop");
-}
-
-void cgroup_controller::thaw_opposing(const size_t id) {
-	const execute_config opposing_config = generate_opposing_config(id);
-
-	send_message<fast::msg::agent::mmbwmon::restart>(opposing_config, "/mmbwmon/restart");
-}
-
 std::string cgroup_controller::domain_name_from_config_elem(const execute_config_elemT &config_elem) const {
 	return cmd_name_from_id(machine_usage[config_elem.first][config_elem.second]);
-}
-
-template <typename messageT>
-void cgroup_controller::send_message(const controllerT::execute_config &config, const std::string &topic_adn) const {
-	for (auto config_elem : config) {
-		const size_t id = machine_usage[config_elem.first][config_elem.second];
-		if (id == std::numeric_limits<size_t>::max()) continue; // there is no job to freeze/thaw
-
-		const messageT m(cmd_name_from_id(id));
-		const std::string topic = "fast/agent/" + machines[config_elem.first] + topic_adn;
-
-		comm->send_message(m.to_string(), topic);
-	}
-
-	for (auto config_elem : config) {
-		if (machine_usage[config_elem.first][config_elem.second] == std::numeric_limits<size_t>::max())
-			continue; // there is no job to freeze/thaw
-		const std::string topic = "fast/agent/" + machines[config_elem.first] + topic_adn + "/ack";
-
-		comm->get_message(topic);
-	}
 }
 
 void cgroup_controller::update_config(const size_t /*id*/, const execute_config & /*new_config*/) { assert(false); }

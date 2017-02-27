@@ -34,14 +34,6 @@ class vm_controller : public controllerT {
 	void init();
 	void dismantle();
 
-	// freezes all VMs with supplied id
-	void freeze(const size_t id);
-	// thaws all VMs with the supplied id
-	void thaw(const size_t id);
-	// freeze VMs opposing to the supplied id
-	void freeze_opposing(const size_t id);
-	// thaws VMs opposing to the supplied id
-	void thaw_opposing(const size_t id);
 	// swaps all slots from the given job with those in the new config
 	void update_config(const size_t id, const execute_config &new_config);
 	bool update_supported() { return true; }

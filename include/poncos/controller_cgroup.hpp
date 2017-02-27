@@ -29,14 +29,6 @@ class cgroup_controller : public controllerT {
 	void init();
 	void dismantle();
 
-	// freezes all cgroups with supplied id
-	void freeze(const size_t id);
-	// thaws all cgroups with the supplied id
-	void thaw(const size_t id);
-	// freeze cgroups opposing to the supplied id
-	void freeze_opposing(const size_t id);
-	// thaws cgroups opposing to the supplied id
-	void thaw_opposing(const size_t id);
 	// not supported
 	void update_config(const size_t id, const execute_config &new_config);
 	bool update_supported() { return false; }
@@ -45,8 +37,6 @@ class cgroup_controller : public controllerT {
 	controllerT::execute_config sort_config_by_hostname(const execute_config &config) const;
 	std::string generate_command(const jobT &job, size_t counter, const execute_config &config) const;
 	std::string domain_name_from_config_elem(const execute_config_elemT &config_elem) const;
-
-	template <typename messageT> void send_message(const execute_config &config, const std::string &topic_adn) const;
 
   private:
 };
