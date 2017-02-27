@@ -9,6 +9,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include <fast-lib/message/migfra/result.hpp>
+#include <fast-lib/message/migfra/task.hpp>
 #include <fast-lib/message/migfra/time_measurement.hpp>
 #include <fast-lib/mqtt_communicator.hpp>
 
@@ -65,7 +67,34 @@ class controllerT {
 	// executed by a new thread, calls system to start the application
 	void execute_command_internal(std::string command, size_t counter, const std::function<void(size_t)> &callback);
 	virtual std::string generate_command(const jobT &command, size_t counter, const execute_config &config) const = 0;
+	virtual std::string domain_name_from_config_elem(const execute_config_elemT &config_elem) const = 0;
 	std::string cmd_name_from_id(const size_t id) const;
+
+	template <typename T> void suspend_resume_config(const execute_config &config) {
+		// request OP
+		for (auto config_elem : config) {
+			std::string topic = "fast/migfra/" + machines[config_elem.first] + "/task";
+
+			auto task = std::make_shared<T>(domain_name_from_config_elem(config_elem), true);
+
+			fast::msg::migfra::Task_container m;
+			m.tasks.push_back(task);
+
+			comm->send_message(m.to_string(), topic);
+		}
+
+		// wait for results
+		fast::msg::migfra::Result_container response;
+		for (auto config_elem : config) {
+			std::string topic = "fast/migfra/" + machines[config_elem.first] + "/result";
+			response.from_string(comm->get_message(topic));
+
+			if (response.results.front().status != "success") {
+				assert(response.results.front().details !=
+					   "Error suspending domain: Requested operation is not valid: domain is not running");
+			}
+		}
+	}
 
   protected:
 	// a counter that is increased with every new cgroup created

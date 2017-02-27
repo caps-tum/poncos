@@ -40,14 +40,14 @@ void vm_controller::freeze(const size_t id) {
 	timestamps.tick("freeze-job-#" + std::to_string(id));
 
 	const execute_config &config = id_to_config[id];
-	suspend_resume_virt_cluster<fast::msg::migfra::Suspend>(config);
+	controllerT::suspend_resume_config<fast::msg::migfra::Suspend>(config);
 }
 
 void vm_controller::thaw(const size_t id) {
 	assert(id < id_to_config.size());
 
 	const execute_config &config = id_to_config[id];
-	suspend_resume_virt_cluster<fast::msg::migfra::Resume>(config);
+	controllerT::suspend_resume_config<fast::msg::migfra::Resume>(config);
 
 	timestamps.tock("freeze-job-#" + std::to_string(id));
 }
@@ -55,13 +55,17 @@ void vm_controller::thaw(const size_t id) {
 void vm_controller::freeze_opposing(const size_t id) {
 	const execute_config opposing_config = generate_opposing_config(id);
 
-	suspend_resume_virt_cluster<fast::msg::migfra::Suspend>(opposing_config);
+	controllerT::suspend_resume_config<fast::msg::migfra::Suspend>(opposing_config);
 }
 
 void vm_controller::thaw_opposing(const size_t id) {
 	const execute_config &opposing_config = generate_opposing_config(id);
 
-	suspend_resume_virt_cluster<fast::msg::migfra::Resume>(opposing_config);
+	controllerT::suspend_resume_config<fast::msg::migfra::Resume>(opposing_config);
+}
+
+std::string vm_controller::domain_name_from_config_elem(const execute_config_elemT &config_elem) const {
+	return vm_locations[config_elem.first][config_elem.second];
 }
 
 void vm_controller::update_config(const size_t id, const execute_config &new_config) {
@@ -216,36 +220,6 @@ std::shared_ptr<fast::msg::migfra::Start> vm_controller::generate_start_task(siz
 	start_task->transient = true;
 
 	return start_task;
-}
-
-template <typename T> void vm_controller::suspend_resume_virt_cluster(const execute_config &config) {
-	// request OP
-	for (auto config_elem : config) {
-		std::string topic = "fast/migfra/" + machines[config_elem.first] + "/task";
-
-		auto task = std::make_shared<T>(vm_locations[config_elem.first][config_elem.second], true);
-
-		fast::msg::migfra::Task_container m;
-		m.tasks.push_back(task);
-
-		FASTLIB_LOG(vm_controller_log, debug) << "sending message \n topic: " << topic << "\n message:\n"
-											  << m.to_string();
-
-		comm->send_message(m.to_string(), topic);
-	}
-
-	// wait for results
-	fast::msg::migfra::Result_container response;
-	for (auto config_elem : config) {
-		// wait for VMs to be started
-		std::string topic = "fast/migfra/" + machines[config_elem.first] + "/result";
-		response.from_string(comm->get_message(topic));
-
-		if (response.results.front().status != "success") {
-			assert(response.results.front().details !=
-				   "Error suspending domain: Requested operation is not valid: domain is not running");
-		}
-	}
 }
 
 void vm_controller::start_all_VMs() {

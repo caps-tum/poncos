@@ -44,6 +44,7 @@ class cgroup_controller : public controllerT {
   private:
 	controllerT::execute_config sort_config_by_hostname(const execute_config &config) const;
 	std::string generate_command(const jobT &job, size_t counter, const execute_config &config) const;
+	std::string domain_name_from_config_elem(const execute_config_elemT &config_elem) const;
 
 	template <typename messageT> void send_message(const execute_config &config, const std::string &topic_adn) const;
 

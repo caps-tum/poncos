@@ -62,6 +62,10 @@ void cgroup_controller::thaw_opposing(const size_t id) {
 	send_message<fast::msg::agent::mmbwmon::restart>(opposing_config, "/mmbwmon/restart");
 }
 
+std::string cgroup_controller::domain_name_from_config_elem(const execute_config_elemT &config_elem) const {
+	return cmd_name_from_id(machine_usage[config_elem.first][config_elem.second]);
+}
+
 template <typename messageT>
 void cgroup_controller::send_message(const controllerT::execute_config &config, const std::string &topic_adn) const {
 	for (auto config_elem : config) {
