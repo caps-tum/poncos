@@ -29,6 +29,11 @@ class cgroup_controller : public controllerT {
 	void init();
 	void dismantle();
 
+	// create domain with id
+	void create_domain(const size_t id);
+	// delete domain with id
+	void delete_domain(const size_t id);
+
 	// not supported
 	void update_config(const size_t id, const execute_config &new_config);
 	bool update_supported() { return false; }

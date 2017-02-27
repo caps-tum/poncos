@@ -34,6 +34,9 @@ void vm_controller::init() { start_all_VMs(); }
 
 void vm_controller::dismantle() { stop_all_VMs(); }
 
+void vm_controller::create_domain(const size_t /* id */) {}
+void vm_controller::delete_domain(const size_t /* id */) {}
+
 std::string vm_controller::domain_name_from_config_elem(const execute_config_elemT &config_elem) const {
 	return vm_locations[config_elem.first][config_elem.second];
 }

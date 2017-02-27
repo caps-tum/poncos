@@ -210,10 +210,16 @@ void controllerT::execute_command_internal(std::string command, size_t counter,
 
 	FASTLIB_LOG(controller_log, info) << "Executing command: " << command;
 
+	// create domain before job start
+	create_domain(counter);
+
 	timestamps.tick("job-#" + std::to_string(counter));
 	auto temp = system(command.c_str());
 	timestamps.tock("job-#" + std::to_string(counter));
 	assert(temp != -1);
+
+	// cleanup
+	delete_domain(counter);
 
 	// we are done
 	std::lock_guard<std::mutex> work_counter_lock(worker_counter_mutex);

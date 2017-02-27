@@ -42,6 +42,11 @@ class controllerT {
 	// thaws domains opposing to the supplied id
 	void thaw_opposing(const size_t id);
 
+	// create domain with id
+	virtual void create_domain(const size_t id) = 0;
+	// delete domain with id
+	virtual void delete_domain(const size_t id) = 0;
+
 	virtual void update_config(const size_t id, const execute_config &new_config) = 0;
 	virtual bool update_supported() = 0;
 

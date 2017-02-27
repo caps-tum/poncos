@@ -22,6 +22,78 @@ cgroup_controller::cgroup_controller(const std::shared_ptr<fast::MQTT_communicat
 void cgroup_controller::init() {}
 void cgroup_controller::dismantle() {}
 
+void cgroup_controller::create_domain(const size_t id) {
+	// determine job's slot (should be the same for all config_elem)
+	const execute_config &config = id_to_config[id];
+	const size_t slot = config[0].second;
+
+	// determine info to create cgroup
+	const std::string cgroup_name = cmd_name_from_id(id);
+	std::vector<std::vector<unsigned int>> memnode_map;
+	memnode_map.reserve(1);
+	std::vector<unsigned int> mem_nodes(co_configs[slot].mems.begin(), co_configs[slot].mems.end());
+	memnode_map.emplace_back(mem_nodes);
+	std::vector<std::vector<unsigned int>> cpu_map;
+	cpu_map.reserve(1);
+	std::vector<unsigned int> cpu_list(co_configs[slot].mems.begin(), co_configs[slot].cpus.end());
+	cpu_map.emplace_back(cpu_list);
+
+	// generate start tasks
+	for (const auto &config_elem : config) {
+		std::string topic = "fast/migfra/" + machines[config_elem.first] + "/task";
+		fast::msg::migfra::Task_container m;
+		auto task = std::make_shared<fast::msg::migfra::Start>();
+		task->vm_name = cgroup_name;
+		task->vcpu_map = cpu_map;
+		task->memnode_map = memnode_map;
+		m.tasks.push_back(task);
+		comm->send_message(m.to_string(), topic);
+	}
+
+	// wait for responses
+	fast::msg::migfra::Result_container response;
+	for (const auto &config_elem : config) {
+		// wait for VMs to be started
+		std::string topic = "fast/migfra/" + machines[config_elem.first] + "/result";
+		response.from_string(comm->get_message(topic));
+
+		// check success for each result
+		for (auto result : response.results) {
+			assert(result.status == "success");
+		}
+	}
+}
+
+void cgroup_controller::delete_domain(const size_t id) {
+	const execute_config &config = id_to_config[id];
+
+	// determine info to create cgroup
+	const std::string cgroup_name = cmd_name_from_id(id);
+
+	// generate start tasks
+	for (const auto &config_elem : config) {
+		std::string topic = "fast/migfra/" + machines[config_elem.first] + "/task";
+		fast::msg::migfra::Task_container m;
+		auto task = std::make_shared<fast::msg::migfra::Stop>();
+		task->vm_name = cgroup_name;
+		m.tasks.push_back(task);
+		comm->send_message(m.to_string(), topic);
+	}
+
+	// wait for responses
+	fast::msg::migfra::Result_container response;
+	for (const auto &config_elem : config) {
+		// wait for VMs to be started
+		std::string topic = "fast/migfra/" + machines[config_elem.first] + "/result";
+		response.from_string(comm->get_message(topic));
+
+		// check success for each result
+		for (auto result : response.results) {
+			assert(result.status == "success");
+		}
+	}
+}
+
 // TODO should delete the mpi host files!
 cgroup_controller::~cgroup_controller() = default;
 
@@ -68,24 +140,6 @@ std::string cgroup_controller::generate_command(const jobT &job, size_t counter,
 		if (hosts_per_slot[slot] == 0) continue;
 
 		std::string &command = commands[slot];
-
-		command = " ./cgroup_wrapper.sh ";
-		command += cmd_name_from_id(counter) + " ";
-
-		// cgroup CPUs and memory is set by the bash script
-		for (int i : co_configs[slot].cpus) {
-			command += std::to_string(i) + ",";
-		}
-		// remove last ','
-		command.pop_back();
-
-		command += " ";
-
-		for (int i : co_configs[slot].mems) {
-			command += std::to_string(i) + ",";
-		}
-		// remove last ','
-		command.pop_back();
 
 		command += " " + job.command;
 	}
