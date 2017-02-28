@@ -30,7 +30,10 @@ vm_controller::vm_controller(const std::shared_ptr<fast::MQTT_communicator> &_co
 
 vm_controller::~vm_controller() = default;
 
-void vm_controller::init() { start_all_VMs(); }
+void vm_controller::init() {
+	stop_all_VMs();
+	start_all_VMs();
+}
 
 void vm_controller::dismantle() { stop_all_VMs(); }
 
@@ -294,10 +297,11 @@ void vm_controller::stop_all_VMs() {
 	for (const auto &mach : machines) {
 		// generate stop tasks
 		fast::msg::migfra::Task_container m;
-		for (size_t slot = 0; slot < SLOTS; ++slot) {
-			auto task = std::make_shared<fast::msg::migfra::Stop>(vm_locations[mach_id][slot], false, false, true);
-			m.tasks.push_back(task);
-		}
+		auto task = std::make_shared<fast::msg::migfra::Stop>();
+		task->regex = ".*";
+		task->force = true;
+		task->concurrent_execution = true;
+		m.tasks.push_back(task);
 
 		// send stop request
 		std::string topic = "fast/migfra/" + mach + "/task";
