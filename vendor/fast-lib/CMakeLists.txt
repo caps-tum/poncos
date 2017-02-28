@@ -31,7 +31,7 @@ if(BUILD_SHARED_LIBS)
 	message(FATAL_ERROR "BUILD_SHARED_LIBS=ON is not supported yet. Use static libs instead.")
 endif()
 
-# set(ENABLE_LOGGING ON CACHE BOOL "Enable logging.")
+set(ENABLE_LOGGING ON CACHE BOOL "Enable logging.")
 if(ENABLE_LOGGING)
 	add_definitions(-DFASTLIB_ENABLE_LOGGING)
 endif()
@@ -43,8 +43,8 @@ set(FASTLIB "fastlib")
 
 # Define version number
 set(FASTLIB_VERSION_MAJOR "0")
-set(FASTLIB_VERSION_MINOR "3")
-set(FASTLIB_VERSION_PATCH "1")
+set(FASTLIB_VERSION_MINOR "4")
+set(FASTLIB_VERSION_PATCH "0")
 set(FASTLIB_VERSION "${FASTLIB_VERSION_MAJOR}.${FASTLIB_VERSION_MINOR}.${FASTLIB_VERSION_PATCH}")
 
 # Check compiler version
