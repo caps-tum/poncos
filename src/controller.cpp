@@ -193,6 +193,9 @@ size_t controllerT::execute(const jobT &job, const execute_config &config, std::
 		_machine_usage[i.first][i.second] = cmd_counter;
 	}
 
+	// create domain before job start
+	create_domain(cmd_counter);
+
 	const std::string command = generate_command(job, cmd_counter, config);
 	thread_pool.emplace_back(&controllerT::execute_command_internal, this, command, cmd_counter, callback);
 
@@ -210,19 +213,18 @@ void controllerT::execute_command_internal(std::string command, size_t counter,
 
 	FASTLIB_LOG(controller_log, info) << "Executing command: " << command;
 
-	// create domain before job start
-	create_domain(counter);
-
 	timestamps.tick("job-#" + std::to_string(counter));
 	auto temp = system(command.c_str());
 	timestamps.tock("job-#" + std::to_string(counter));
 	assert(temp != -1);
 
+	// we are done
+	std::lock_guard<std::mutex> work_counter_lock(worker_counter_mutex);
+
+
 	// cleanup
 	delete_domain(counter);
 
-	// we are done
-	std::lock_guard<std::mutex> work_counter_lock(worker_counter_mutex);
 	controllerT::execute_config cur_config = id_to_config[counter];
 	FASTLIB_LOG(controller_log, info) << ">> \t '" << command << "' completed at configuration "
 									  << cur_config[0].second;
