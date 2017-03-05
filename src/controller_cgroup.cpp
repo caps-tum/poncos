@@ -47,8 +47,8 @@ void cgroup_controller::create_domain(const size_t id) {
 		if (iter != task_container_map.end()) {
 			// already an entry in the map -> append
 			auto task = std::dynamic_pointer_cast<fast::msg::migfra::Start>(iter->second.tasks[0]);
-			task->vcpu_map.get().insert(task->vcpu_map.get().end(), cpu_map.begin(), cpu_map.end());
-			task->memnode_map.get().insert(task->memnode_map.get().end(), memnode_map.begin(), memnode_map.end());
+			task->vcpu_map.get()[0].insert(task->vcpu_map.get()[0].end(), cpu_map[0].begin(), cpu_map[0].end());
+			task->memnode_map.get()[0].insert(task->memnode_map.get()[0].end(), memnode_map[0].begin(), memnode_map[0].end());
 		} else {
 			auto task = std::make_shared<fast::msg::migfra::Start>();
 			task->vm_name = cgroup_name;
@@ -168,26 +168,7 @@ std::string cgroup_controller::generate_command(const jobT &job, size_t counter,
 		command = " ./cgroup_wrapper.sh ";
 		command += cmd_name_from_id(counter) + " ";
 
-		// cgroup CPUs and memory is set by the bash script
-		for (const auto &co_config : co_configs) {
-			for (int i : co_config.cpus) {
-				command += std::to_string(i) + ",";
-			}
-		}
-		// remove last ','
-		command.pop_back();
-
-		command += " ";
-
-		for (const auto &co_config : co_configs) {
-			for (int i : co_config.mems) {
-				command += std::to_string(i) + ",";
-			}
-		}
-		// remove last ','
-		command.pop_back();
-
-		command += " " + job.command;
+		command += job.command;
 	}
 
 	// create hostfile
