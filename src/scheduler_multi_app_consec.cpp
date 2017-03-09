@@ -23,24 +23,9 @@ void multi_app_sched_consec::schedule(const job_queueT &job_queue, fast::MQTT_co
 	// for all commands
 	for (const auto &job : job_queue.jobs) {
 		assert(job.req_cpus() <= controller.machines.size() * SLOT_SIZE * SLOTS);
-		controller.wait_for_ressource(job.req_cpus(), SLOTS);
+		controller.wait_for_resource(job.req_cpus(), SLOTS);
 
-		// select ressources
-		controllerT::execute_config config;
-		for (size_t m = 0; m < controller.machine_usage.size(); ++m) {
-			const auto &mu = controller.machine_usage[m];
-
-			// the same job should be running on all slots of a node
-			assert(mu[0] == mu[1]);
-
-			// take all slots if empty
-			if (mu[0] == std::numeric_limits<size_t>::max()) {
-				for (size_t s = 0; s < SLOTS; ++s) {
-					config.emplace_back(m, s);
-				}
-			}
-			if (config.size() * SLOT_SIZE >= job.req_cpus()) break;
-		}
+		controllerT::execute_config config = controller.generate_config(job.req_cpus(), controllerT::exclusive);
 		assert(config.size() * SLOT_SIZE >= job.req_cpus());
 
 		// start job
