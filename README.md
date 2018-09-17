@@ -1,5 +1,6 @@
 # poncos
-[![Build Status](https://travis-ci.org/lrr-tum/poncos.svg?branch=master)](https://travis-ci.org/lrr-tum/poncos)
+
+[![Build Status](https://travis-ci.org/caps-tum/poncos.svg?branch=master)](https://travis-ci.org/caps-tum/poncos)
 
 Poor Man's Co-Scheduler
 
